@@ -6,6 +6,7 @@ const DB_DATA_KEY="library";
 const DB_META_KEY="meta";
 const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
+const APP_VERSION="v1.7";
 let syncConfig=null;
 let syncClient=null;
 let syncUser=null;
@@ -123,15 +124,29 @@ function saveSyncConfig(cfg){syncConfig=cfg;localStorage.setItem(SYNC_CONFIG_KEY
 function syncAvailable(){return !!(window.supabase&&syncConfig?.url&&syncConfig?.anonKey);}
 function initSyncClient(){
  if(!syncAvailable())return null;
- try{syncClient=window.supabase.createClient(syncConfig.url,syncConfig.anonKey);return syncClient}catch(e){syncClient=null;return null}
+ try{syncClient=window.supabase.createClient(syncConfig.url,syncConfig.anonKey,{
+   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storage:window.localStorage}
+  });return syncClient}catch(e){syncClient=null;return null}
 }
 async function syncInit(){
  loadSyncConfig();
  if(!syncAvailable())return;
  const c=initSyncClient(); if(!c)return;
- try{const {data:{session}}=await c.auth.getSession();syncUser=session?.user||null}catch(e){syncUser=null}
- c.auth.onAuthStateChange((_event,session)=>{syncUser=session?.user||null;updateSyncBadge();});
+ try{
+  const {data:{session}}=await c.auth.getSession();
+  syncUser=session?.user||null;
+ }catch(e){syncUser=null}
+ c.auth.onAuthStateChange((event,session)=>{
+  syncUser=session?.user||null;
+  updateSyncBadge();
+  if(session && (event==="SIGNED_IN" || event==="INITIAL_SESSION")){
+   setTimeout(()=>syncNow(),150);
+  }
+ });
  updateSyncBadge();
+ if(syncUser){
+  setTimeout(()=>syncNow(),150);
+ }
 }
 function updateSyncBadge(){
  const el=document.getElementById("syncBadge");
@@ -156,6 +171,7 @@ function openSync(){
    <label class="field-label">Contraseña</label><input id="syncPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="current-password">
    <div class="actions"><button class="btn primary" onclick="syncSignUp()">Crear cuenta</button><button class="btn" onclick="syncSignIn()">Iniciar sesión</button><button class="btn" onclick="syncSignOut()">Cerrar sesión</button></div>
    <h3>3. Sincronizar</h3>
+   <p class="muted small">Tu sesión queda guardada en este dispositivo. Una vez iniciada, la app la recupera automáticamente al volver a abrirla.</p>
    <div class="actions"><button class="btn primary" onclick="syncNow()">🔄 Sincronizar ahora</button><button class="btn" onclick="exportJSON()">⬇️ Copia JSON</button></div>
    <div id="syncMessage" class="feedback"></div>
   </div>
