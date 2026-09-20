@@ -1,0 +1,10 @@
+{
+  "name": "Francés personal",
+  "short_name": "Francés",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#111827",
+  "lang": "es",
+  "icons": []
+}
