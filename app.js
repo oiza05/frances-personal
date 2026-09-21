@@ -52,8 +52,8 @@ function normalize(value){
 function masteryPercent(arr, key){
  if(!arr.length)return null;
  const avg=arr.reduce((sum,x)=>sum+(Number(x[key])||0),0)/arr.length;
- return Math.round((avg/5)*100);
-}
+return Math.round(((avg-1)/4)*100);}
+
 function masteryLabel(arr,key){
  const pct=masteryPercent(arr,key);
  return pct===null?"—":pct+"%";
