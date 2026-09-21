@@ -433,8 +433,8 @@ function startSession(level,type,part=null){
   const rb=type==="translation"?b.translationStars:b.pronunciationStars;
   return ra-rb || Math.random()-0.5;
  });
- sessionIds=sorted.slice(0,Math.min(20,sorted.length)).map(x=>x.id);
- renderSession();
+sessionIds=sorted.map(x=>x.id);
+renderSession();
 }
 
 function renderSession(){
