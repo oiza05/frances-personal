@@ -32,6 +32,11 @@ let currentLevel=null;
 let currentPart=1;
 let sessionType=null;
 let sessionIds=[];
+
+let partAudioPlaying=false;
+let partAudioItems=[];
+let partAudioIndex=0;
+let partAudioTimer=null;
 let sessionPos=0;
 let sessionChecked=false;
 let selectedTag="Todas";
@@ -388,11 +393,37 @@ function openPart(level,part){
     <div class="stat"><div class="muted small">Necesitan pronunciación</div><b>${arr.filter(x=>x.pronunciationStars<=2).length}</b></div>
     <div class="stat"><div class="muted small">Necesitan traducción</div><b>${arr.filter(x=>x.translationStars<=2).length}</b></div>
    </div>
-   <div class="level-actions">
+  <div class="level-actions">
     <button class="btn primary" onclick="startSession('${level}','translation',${part})">✍️ Practicar traducción</button>
     <button class="btn" onclick="startSession('${level}','pronunciation',${part})">🎧 Practicar pronunciación</button>
     <button class="btn" onclick="showLevelPhrases('${level}','Todas',${part})">📖 Ver frases</button>
    </div>
+
+   <div class="card" style="margin-top:16px">
+    <div class="section-head" style="margin-bottom:10px">
+     <div>
+      <b>🎧 Escuchar toda la parte</b>
+      <div class="muted small">
+       Escucha todas las frases en francés automáticamente, sin tener que tocar la pantalla.
+      </div>
+     </div>
+    </div>
+
+    <div class="actions">
+     <button class="btn primary" onclick="playPartAudio(data.filter(x=>x.level==='${level}' && Number(x.part)===${part}))">
+      ▶️ Escuchar toda la parte
+     </button>
+
+     <button class="btn" onclick="stopPartAudio()">
+      ⏹️ Parar
+     </button>
+    </div>
+
+    <div id="speechStatus" class="muted small" style="margin-top:10px">
+     🔊 Audio listo
+    </div>
+   </div>
+   
    <div id="levelContent"></div>
   </section>`;
  if(tags.length || arr.length) showLevelPhrases(level,"Todas",part);
@@ -671,6 +702,118 @@ function cleanSpeechText(value){
 }
 
 let speechBusy=false;
+
+function playPartAudio(items){
+ if(!('speechSynthesis' in window)){
+  alert('Este navegador no admite reproducción de voz.');
+  return;
+ }
+
+ if(!items || !items.length)return;
+
+ stopPartAudio();
+
+ partAudioItems=items;
+ partAudioIndex=0;
+ partAudioPlaying=true;
+
+ setSpeechStatus(`🔊 Reproduciendo 1/${partAudioItems.length}…`);
+ playNextPartAudio();
+}
+
+function playNextPartAudio(){
+ if(!partAudioPlaying)return;
+
+ if(partAudioIndex>=partAudioItems.length){
+  partAudioPlaying=false;
+  partAudioItems=[];
+  partAudioIndex=0;
+  setSpeechStatus('✅ Parte terminada');
+  return;
+ }
+
+ const phrase=cleanSpeechText(partAudioItems[partAudioIndex]?.fr);
+ if(!phrase){
+  partAudioIndex++;
+  setTimeout(playNextPartAudio,100);
+  return;
+ }
+
+ const number=partAudioIndex+1;
+ setSpeechStatus(`🔊 Reproduciendo ${number}/${partAudioItems.length}…`);
+
+ const synth=window.speechSynthesis;
+
+ try{
+  synth.cancel();
+  synth.resume();
+ }catch(e){}
+
+ const u=new SpeechSynthesisUtterance(phrase);
+ u.lang='fr-FR';
+ u.rate=0.88;
+ u.pitch=1;
+
+ const voice=getFrenchVoice();
+ if(voice)u.voice=voice;
+
+ u.onend=()=>{
+  if(!partAudioPlaying)return;
+
+  partAudioIndex++;
+
+  partAudioTimer=setTimeout(()=>{
+   if(partAudioPlaying)playNextPartAudio();
+  },1000);
+ };
+
+ u.onerror=(event)=>{
+  if(!partAudioPlaying)return;
+
+  console.warn(
+   'SpeechSynthesis error:',
+   event?.error||'unknown',
+   phrase
+  );
+
+  partAudioIndex++;
+
+  partAudioTimer=setTimeout(()=>{
+   if(partAudioPlaying)playNextPartAudio();
+  },500);
+ };
+
+ try{
+  synth.speak(u);
+  setTimeout(()=>{
+   try{synth.resume();}catch(e){}
+  },100);
+ }catch(e){
+  console.warn('No se pudo iniciar el audio:',e);
+  partAudioIndex++;
+
+  partAudioTimer=setTimeout(()=>{
+   if(partAudioPlaying)playNextPartAudio();
+  },500);
+ }
+}
+
+function stopPartAudio(){
+ partAudioPlaying=false;
+ partAudioItems=[];
+ partAudioIndex=0;
+
+ if(partAudioTimer){
+  clearTimeout(partAudioTimer);
+  partAudioTimer=null;
+ }
+
+ if('speechSynthesis' in window){
+  try{window.speechSynthesis.cancel();}catch(e){}
+ }
+
+ setSpeechStatus('🔊 Audio listo');
+}
 
 function speak(text){
  if(!('speechSynthesis' in window)){
