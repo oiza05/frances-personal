@@ -24,8 +24,78 @@ const sample=[
 
 const levels=["A1","A2","B1","B2","C1","C2"];
 let data=sample.map(migratePhrase);
+
+let streakData={
+ current:0,
+ best:0,
+ lastDate:null
+};
+
+loadStreak();
+
 let dbReady=false;
 let saveTimer=null;
+
+function loadStreak(){
+ try{
+  const saved=JSON.parse(localStorage.getItem("frances-streak"));
+  if(saved && typeof saved==="object"){
+   streakData={
+    current:Number(saved.current)||0,
+    best:Number(saved.best)||0,
+    lastDate:saved.lastDate||null
+   };
+  }
+ }catch(e){
+  console.warn("No se pudo cargar la racha:",e);
+ }
+}
+
+function saveStreak(){
+ try{
+  localStorage.setItem("frances-streak",JSON.stringify(streakData));
+ }catch(e){
+  console.warn("No se pudo guardar la racha:",e);
+ }
+}
+
+function getTodayKey(){
+ const d=new Date();
+ const y=d.getFullYear();
+ const m=String(d.getMonth()+1).padStart(2,"0");
+ const day=String(d.getDate()).padStart(2,"0");
+ return `${y}-${m}-${day}`;
+}
+
+function getYesterdayKey(){
+ const d=new Date();
+ d.setDate(d.getDate()-1);
+ const y=d.getFullYear();
+ const m=String(d.getMonth()+1).padStart(2,"0");
+ const day=String(d.getDate()).padStart(2,"0");
+ return `${y}-${m}-${day}`;
+}
+
+function registerStudyDay(){
+ const today=getTodayKey();
+
+ // Ya se ha estudiado hoy
+ if(streakData.lastDate===today)return;
+
+ if(streakData.lastDate===getYesterdayKey()){
+  streakData.current++;
+ }else{
+  streakData.current=1;
+ }
+
+ streakData.best=Math.max(
+  streakData.best,
+  streakData.current
+ );
+
+ streakData.lastDate=today;
+ saveStreak();
+}
 
 let current=0;
 let currentLevel=null;
@@ -39,6 +109,7 @@ let partAudioIndex=0;
 let partAudioTimer=null;
 let sessionPos=0;
 let sessionChecked=false;
+
 let selectedTag="Todas";
 let libraryQuery="";
 let localUpdatedAt=0;
@@ -292,6 +363,15 @@ function home(){
  const total=data.length;
  document.getElementById("main").innerHTML=`
   <section>
+  <div class="card" style="margin-bottom:16px">
+ <div style="font-size:28px;font-weight:800">
+  🔥 ${streakData.current}
+ </div>
+ <div><b>días de racha</b></div>
+ <div class="muted small" style="margin-top:4px">
+  Récord: ${streakData.best} días
+ </div>
+</div>
    <div class="section-head">
     <div><h2>Elige tu nivel</h2><div class="muted">Empieza por A1 y avanza hasta C2.</div></div>
     <button class="btn" onclick="library()">📚 Gestionar frases</button>
@@ -493,8 +573,18 @@ function renderSession(){
     ${arr.map((x,i)=>sessionPhraseCard(x,i+1)).join("")}
   </section>
   <div class="actions all-study-footer">
-    <button class="btn primary" onclick="currentPart!==null?openPart('${currentLevel}',currentPart):openLevel('${currentLevel}')">✓ Terminar sesión</button>
-  </div>`;
+    <button class="btn primary" onclick="finishSession()">✓ Terminar sesión</button>
+</div>`;
+
+ function finishSession(){
+ registerStudyDay();
+
+ if(currentPart!==null){
+  openPart(currentLevel,currentPart);
+ }else{
+  openLevel(currentLevel);
+ }
+}
 }
 
 function sessionPhraseCard(x,num){
