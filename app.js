@@ -108,8 +108,12 @@ function normalize(value){
 }
 function masteryPercent(arr, key){
  if(!arr.length)return null;
- const avg=arr.reduce((sum,x)=>sum+(Number(x[key])||0),0)/arr.length;
-return Math.round(((avg-1)/4)*100);}
+ const avg=arr.reduce((sum,x)=>{
+  const stars=Math.min(5,Math.max(1,Number(x[key])||1));
+  return sum+stars;
+ },0)/arr.length;
+ return Math.round(Math.min(100,Math.max(0,((avg-1)/4)*100)));
+}
 function masteryLabel(arr,key){
  const pct=masteryPercent(arr,key);
  return pct===null?"—":pct+"%";
@@ -359,11 +363,9 @@ function statistics(){
  const mastered=data.filter(x=>(Number(x.translationStars)||1)>=4 && (Number(x.pronunciationStars)||1)>=4).length;
  const practiced=data.filter(x=>(Number(x.practiceCount)||0)>0).length;
  const learnedWords=getLearnedWords().size;
- const avgTranslation=total?Math.round(data.reduce((s,x)=>s+(Number(x.translationStars)||1),0)/total):0;
- const avgPronunciation=total?Math.round(data.reduce((s,x)=>s+(Number(x.pronunciationStars)||1),0)/total):0;
- const overall=total?Math.round((((avgTranslation+avgPronunciation)/2)-1)/4*100):0;
- const translationPct=total?Math.round(((avgTranslation-1)/4)*100):0;
- const pronunciationPct=total?Math.round(((avgPronunciation-1)/4)*100):0;
+ const translationPct=masteryPercent(data,"translation")??0;
+ const pronunciationPct=masteryPercent(data,"pronunciation")??0;
+ const overall=total?Math.round((translationPct+pronunciationPct)/2):0;
  document.getElementById("main").innerHTML=`
   <section>
    <div class="section-head"><div><h2>📊 Estadísticas</h2><div class="muted">Tu progreso general en francés.</div></div></div>
@@ -721,7 +723,6 @@ function sessionPhraseCard(x,num){
 }
 function checkAllAnswer(id){
  const x=data.find(a=>String(a.id)===String(id));
- registerPhrasePractice(x);
  const input=document.getElementById(`answer-${id}`);
  const fb=document.getElementById(`feedback-${id}`);
  if(!x||!input||!fb)return;
@@ -731,6 +732,7 @@ function checkAllAnswer(id){
   input.focus();
   return;
  }
+ registerPhrasePractice(x);
  const got=normalize(raw);
  const expected=normalize(x.fr);
  const exact=got===expected;
