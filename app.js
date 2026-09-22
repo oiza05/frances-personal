@@ -363,8 +363,8 @@ function statistics(){
  const mastered=data.filter(x=>(Number(x.translationStars)||1)>=4 && (Number(x.pronunciationStars)||1)>=4).length;
  const practiced=data.filter(x=>(Number(x.practiceCount)||0)>0).length;
  const learnedWords=getLearnedWords().size;
- const translationPct=masteryPercent(data,"translation")??0;
- const pronunciationPct=masteryPercent(data,"pronunciation")??0;
+ const translationPct=masteryPercent(data,"translationStars")??0;
+ const pronunciationPct=masteryPercent(data,"pronunciationStars")??0;
  const overall=total?Math.round((translationPct+pronunciationPct)/2):0;
  document.getElementById("main").innerHTML=`
   <section>
