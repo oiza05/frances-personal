@@ -607,7 +607,7 @@ function startReviewToday(type){
   return scoreB-scoreA || Math.random()-0.5;
  });
 
- const selected=sorted.slice(0,15);
+ const selected=sorted.slice(0,50);
 
  if(!selected.length){
   alert("Todavía no hay frases para repasar.");
