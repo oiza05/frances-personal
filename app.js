@@ -576,15 +576,16 @@ function renderSession(){
     <button class="btn primary" onclick="finishSession()">✓ Terminar sesión</button>
 </div>`;
 
- function finishSession(){
- registerStudyDay();
-
- if(currentPart!==null){
-  openPart(currentLevel,currentPart);
- }else{
-  openLevel(currentLevel);
- }
 }
+
+function finishSession(){
+  registerStudyDay();
+
+  if(currentPart!==null){
+    openPart(currentLevel,currentPart);
+  }else{
+    openLevel(currentLevel);
+  }
 }
 
 function sessionPhraseCard(x,num){
