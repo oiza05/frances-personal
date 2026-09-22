@@ -109,7 +109,7 @@ let partAudioIndex=0;
 let partAudioTimer=null;
 let sessionPos=0;
 let sessionChecked=false;
-
+let sessionPracticedIds=new Set();
 let selectedTag="Todas";
 let libraryQuery="";
 let localUpdatedAt=0;
@@ -352,6 +352,13 @@ function stars(n,id,type){
 
 function registerPhrasePractice(x){
  if(!x)return;
+
+ const key=String(x.id);
+
+ if(sessionType && sessionIds.length){
+  if(sessionPracticedIds.has(key))return;
+  sessionPracticedIds.add(key);
+ }
 
  x.practiceCount=(Number(x.practiceCount)||0)+1;
  x.lastPracticed=new Date().toISOString();
@@ -613,6 +620,7 @@ function startReviewToday(type){
   alert("Todavía no hay frases para repasar.");
   return;
  }
+ sessionPracticedIds=new Set();
 
  currentLevel=null;
  currentPart=null;
@@ -625,6 +633,7 @@ function startReviewToday(type){
 function startSession(level,type,part=null){
  const pool=data.filter(x=>x.level===level && (part===null || Number(x.part)===Number(part)));
  if(!pool.length){alert("Todavía no hay frases en este nivel.");return}
+ sessionPracticedIds=new Set();
  currentLevel=level;
  currentPart=part;
  sessionType=type;
@@ -649,8 +658,7 @@ function renderSession(){
 
  document.getElementById("main").innerHTML=`
   <div class="sessionbar session-all-header">
-   <button class="btn smallbtn" onclick="currentPart!==null?openPart('${currentLevel}',currentPart):openLevel('${currentLevel}')">← Salir</button>
-   <div style="flex:1;text-align:center">
+<button class="btn smallbtn" onclick="exitSession()">← Salir</button>   <div style="flex:1;text-align:center">
     <b>${typeLabel}</b>
 <div class="muted small">
  ${currentLevel
@@ -671,15 +679,31 @@ function renderSession(){
 </div>`;
 
 }
-
+function exitSession(){
+ stopPartAudio();
+ currentLevel=null;
+ currentPart=null;
+ sessionType=null;
+ sessionIds=[];
+ sessionPracticedIds=new Set();
+ sessionPos=0;
+ setNav("home");
+ home();
+}
 function finishSession(){
-  registerStudyDay();
+ registerStudyDay();
 
-  if(currentPart!==null){
-    openPart(currentLevel,currentPart);
-  }else{
-    openLevel(currentLevel);
-  }
+ if(currentLevel && currentPart!==null){
+  openPart(currentLevel,currentPart);
+  return;
+ }
+
+ if(currentLevel){
+  openLevel(currentLevel);
+  return;
+ }
+
+ exitSession();
 }
 
 function sessionPhraseCard(x,num){
@@ -728,18 +752,43 @@ function sessionPhraseCard(x,num){
 
 function checkAllAnswer(id){
  const x=data.find(a=>String(a.id)===String(id));
- registerPhrasePractice(x);
  const input=document.getElementById(`answer-${id}`);
  const fb=document.getElementById(`feedback-${id}`);
+
  if(!x||!input||!fb)return;
 
  const raw=input.value.trim();
+
  if(!raw){
   fb.innerHTML='<div class="feedback wrong-feedback"><b>⚠️ Falta tu respuesta.</b><br><span class="muted">Escribe la frase en francés y vuelve a pulsar Comprobar.</span></div>';
   input.focus();
   return;
  }
 
+ registerPhrasePractice(x);
+
+ const got=normalize(raw);
+ const expected=normalize(x.fr);
+ const exact=got===expected;
+
+ if(exact){
+  fb.innerHTML=
+   '<div class="feedback correct-feedback">'+
+   '<b>✅ ¡Correcto!</b><br>'+
+   '<span class="muted">Tu respuesta coincide con la frase esperada.</span>'+
+   '</div>';
+ }else{
+  fb.innerHTML=
+   '<div class="feedback wrong-feedback">'+
+   '<b>❌ Hay una diferencia.</b>'+
+   '<div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div>'+
+   '<div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br>'+
+   '<b class="expected-answer">'+escapeHtml(x.fr)+'</b></div>'+
+   '</div>';
+ }
+
+ input.disabled=true;
+}
  const got=normalize(raw);
  const expected=normalize(x.fr);
  const exact=got===expected;
