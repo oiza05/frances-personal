@@ -789,27 +789,6 @@ function checkAllAnswer(id){
 
  input.disabled=true;
 }
- const got=normalize(raw);
- const expected=normalize(x.fr);
- const exact=got===expected;
-
- if(exact){
-  fb.innerHTML=
-   '<div class="feedback correct-feedback">'+
-   '<b>✅ ¡Correcto!</b><br>'+
-   '<span class="muted">Tu respuesta coincide con la frase esperada.</span>'+
-   '</div>';
- }else{
-  fb.innerHTML=
-   '<div class="feedback wrong-feedback">'+
-   '<b>❌ Hay una diferencia.</b>'+
-   '<div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div>'+
-   '<div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br>'+
-   '<b class="expected-answer">'+escapeHtml(x.fr)+'</b></div>'+
-   '</div>';
- }
- input.disabled=true;
-}
 
 function toggleSpanishById(id){
  document.getElementById(`spanish-${id}`)?.classList.toggle("hidden");
