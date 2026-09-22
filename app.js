@@ -383,8 +383,8 @@ function statistics(){
    <div class="card" style="margin-top:16px"><b>📚 Por nivel</b><div style="margin-top:12px">
     ${levels.map(level=>{
       const arr=data.filter(x=>x.level===level);
-      const pct=masteryPercent(arr,"translation");
-      const pctP=masteryPercent(arr,"pronunciation");
+      const pct=masteryPercent(arr,"translationStars");
+      const pctP=masteryPercent(arr,"pronunciationStars");
       const pctAll=(pct===null||pctP===null)?null:Math.round((pct+pctP)/2);
       return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${arr.length} frases</span><span>${pctAll===null?"—":pctAll+"%"}</span></div><div class="level-progress"><span style="width:${pctAll===null?0:pctAll}%"></span></div></div>`;
     }).join("")}
