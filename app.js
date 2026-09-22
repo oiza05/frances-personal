@@ -596,8 +596,8 @@ function renderSession(){
    :"Todas las frases de esta sesión están en la misma pantalla. Escucha cada frase y valórate individualmente.";
  document.getElementById("main").innerHTML=`
   <div class="sessionbar session-all-header">
-   <button class="btn smallbtn" onclick="currentPart!==null?openPart('${currentLevel}',currentPart):openLevel('${currentLevel}')">← Salir</button>
-   <div style="flex:1;text-align:center">
+<button class="btn smallbtn" onclick="currentLevel ? (currentPart!==null ? openPart('${currentLevel}',currentPart) : openLevel('${currentLevel}')) : goHome()">← Salir</button>
+<div style="flex:1;text-align:center">
     <b>${typeLabel}</b>
 <div class="muted small">
  ${currentLevel
@@ -619,6 +619,12 @@ function renderSession(){
 }
 function finishSession(){
   registerStudyDay();
+
+  if(currentLevel===null){
+    goHome();
+    return;
+  }
+
   if(currentPart!==null){
     openPart(currentLevel,currentPart);
   }else{
