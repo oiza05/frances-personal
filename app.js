@@ -727,7 +727,7 @@ function sessionPhraseCard(x,num){
    </div>
    <div id="feedback-${x.id}"></div>
   </article>`;
- }
+ }}
  return `<article class="card study-item" id="study-${x.id}">
    <div class="study-item-head">
     <span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span>
