@@ -320,7 +320,9 @@ async function syncNow(){
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function setNav(active){
  document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));
- document.getElementById(active==="library"?"navLibrary":"navHome").classList.add("active");
+ const map={home:"navHome",statistics:"navStatistics",library:"navLibrary",sync:"navSync"};
+ const id=map[active]||"navHome";
+ document.getElementById(id)?.classList.add("active");
 }
 function stars(n,id,type){
  let s='<div class="stars">';
@@ -343,6 +345,49 @@ window.rate=(id,n,type)=>{
 };
 function goHome(){
  currentLevel=null; sessionType=null; sessionIds=[]; sessionPos=0; setNav("home"); home();
+}
+function getLearnedWords(){
+ const words=new Set();
+ data.filter(x=>(Number(x.translationStars)||1)>=4 && (Number(x.pronunciationStars)||1)>=4).forEach(x=>{
+  normalize(x.fr).split(" ").forEach(word=>{if(word)words.add(word);});
+ });
+ return words;
+}
+function statistics(){
+ setNav("statistics");
+ const total=data.length;
+ const mastered=data.filter(x=>(Number(x.translationStars)||1)>=4 && (Number(x.pronunciationStars)||1)>=4).length;
+ const practiced=data.filter(x=>(Number(x.practiceCount)||0)>0).length;
+ const learnedWords=getLearnedWords().size;
+ const avgTranslation=total?Math.round(data.reduce((s,x)=>s+(Number(x.translationStars)||1),0)/total):0;
+ const avgPronunciation=total?Math.round(data.reduce((s,x)=>s+(Number(x.pronunciationStars)||1),0)/total):0;
+ const overall=total?Math.round((((avgTranslation+avgPronunciation)/2)-1)/4*100):0;
+ const translationPct=total?Math.round(((avgTranslation-1)/4)*100):0;
+ const pronunciationPct=total?Math.round(((avgPronunciation-1)/4)*100):0;
+ document.getElementById("main").innerHTML=`
+  <section>
+   <div class="section-head"><div><h2>📊 Estadísticas</h2><div class="muted">Tu progreso general en francés.</div></div></div>
+   <div class="level-grid">
+    <div class="card"><div class="muted small">Frases</div><div style="font-size:28px;font-weight:800">${total}</div><div class="muted small">en tu biblioteca</div></div>
+    <div class="card"><div class="muted small">Dominadas</div><div style="font-size:28px;font-weight:800">${mastered}</div><div class="muted small">4⭐ o más en ambas áreas</div></div>
+    <div class="card"><div class="muted small">Practicadas</div><div style="font-size:28px;font-weight:800">${practiced}</div><div class="muted small">al menos una vez</div></div>
+    <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${learnedWords}</div><div class="muted small">palabras únicas de frases dominadas</div></div>
+   </div>
+   <div class="card" style="margin-top:16px">
+    <div class="section-head" style="margin-bottom:12px"><div><b>🎯 Dominio general</b><div class="muted small">Promedio de traducción y pronunciación.</div></div><b style="font-size:24px">${overall}%</b></div>
+    <div class="level-progress"><span style="width:${overall}%"></span></div>
+    <div class="stats-split" style="margin-top:14px"><div><span class="muted small">✍️ Traducción</span><br><b>${translationPct}%</b></div><div><span class="muted small">🎧 Pronunciación</span><br><b>${pronunciationPct}%</b></div></div>
+   </div>
+   <div class="card" style="margin-top:16px"><b>📚 Por nivel</b><div style="margin-top:12px">
+    ${levels.map(level=>{
+      const arr=data.filter(x=>x.level===level);
+      const pct=masteryPercent(arr,"translation");
+      const pctP=masteryPercent(arr,"pronunciation");
+      const pctAll=(pct===null||pctP===null)?null:Math.round((pct+pctP)/2);
+      return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${arr.length} frases</span><span>${pctAll===null?"—":pctAll+"%"}</span></div><div class="level-progress"><span style="width:${pctAll===null?0:pctAll}%"></span></div></div>`;
+    }).join("")}
+   </div></div>
+  </section>`;
 }
 function home(){
  const counts=Object.fromEntries(levels.map(l=>[l,data.filter(x=>x.level===l).length]));
