@@ -142,7 +142,9 @@ function migratePhrase(x){
   level:levels.includes(x.level)?x.level:"A1",
   part:[1,2,3,4].includes(Number(x.part))?Number(x.part):1,
   pronunciationStars:Number(x.pronunciationStars ?? x.stars) || 1,
-  translationStars:Number(x.translationStars ?? x.stars) || 1
+  translationStars:Number(x.translationStars ?? x.stars) || 1,
+  practiceCount:Number(x.practiceCount)||0,
+  lastPracticed:x.lastPracticed||null
  };
 }
 function openDB(){
@@ -347,11 +349,24 @@ function stars(n,id,type){
  for(let i=1;i<=5;i++) s+=`<button class="star ${i<=n?"on":""}" onclick="rate(${JSON.stringify(id)},${i},'${type}')" aria-label="${type} ${i} estrellas">★</button>`;
  return s+"</div>";
 }
+
+function registerPhrasePractice(x){
+ if(!x)return;
+
+ x.practiceCount=(Number(x.practiceCount)||0)+1;
+ x.lastPracticed=new Date().toISOString();
+
+ save();
+}
 window.rate=(id,n,type)=>{
- const x=data.find(a=>String(a.id)===String(id)); if(!x)return;
+ const x=data.find(a=>String(a.id)===String(id)); 
+ if(!x)return;
+
  if(type==="pronunciation")x.pronunciationStars=n;
  if(type==="translation")x.translationStars=n;
- save();
+
+ registerPhrasePractice(x);
+
  renderCurrent();
 };
 
@@ -370,6 +385,26 @@ function home(){
  <div><b>días de racha</b></div>
  <div class="muted small" style="margin-top:4px">
   Récord: ${streakData.best} días
+ </div>
+</div>
+<div class="card" style="margin-bottom:16px">
+ <div class="section-head" style="margin-bottom:10px">
+  <div>
+   <b>🎯 Repasar hoy</b>
+   <div class="muted small">
+    Practica las frases que más necesitan atención.
+   </div>
+  </div>
+ </div>
+
+ <div class="actions">
+  <button class="btn primary" onclick="startReviewToday('translation')">
+   ✍️ Traducción
+  </button>
+
+  <button class="btn" onclick="startReviewToday('pronunciation')">
+   🎧 Pronunciación
+  </button>
  </div>
 </div>
    <div class="section-head">
@@ -531,6 +566,61 @@ function phraseRow(x){
   <div class="actions" style="margin-top:10px"><button class="btn smallbtn" onclick="editPhrase(${JSON.stringify(x.id)})">Editar</button><button class="btn smallbtn" onclick="deletePhrase(${JSON.stringify(x.id)})">Eliminar</button></div>
  </article>`;
 }
+function startReviewToday(type){
+ const now=Date.now();
+
+ const sorted=[...data].sort((a,b)=>{
+  const aStars=type==="translation"
+    ?Number(a.translationStars)||1
+    :Number(a.pronunciationStars)||1;
+
+  const bStars=type==="translation"
+    ?Number(b.translationStars)||1
+    :Number(b.pronunciationStars)||1;
+
+  const aPracticed=Number(a.practiceCount)||0;
+  const bPracticed=Number(b.practiceCount)||0;
+
+  const aLast=a.lastPracticed?new Date(a.lastPracticed).getTime():0;
+  const bLast=b.lastPracticed?new Date(b.lastPracticed).getTime():0;
+
+  // 1. Frases practicadas con pocas estrellas
+  const aWeak=(aPracticed>0 ? (6-aStars)*100 : 0);
+  const bWeak=(bPracticed>0 ? (6-bStars)*100 : 0);
+
+  // 2. Frases antiguas: cuanto más tiempo, más prioridad
+  const aAge=aLast
+    ? Math.min((now-aLast)/86400000,30)
+    : 0;
+
+  const bAge=bLast
+    ? Math.min((now-bLast)/86400000,30)
+    : 0;
+
+  // 3. Frases nuevas reciben una prioridad moderada
+  const aNew=aPracticed===0?40:0;
+  const bNew=bPracticed===0?40:0;
+
+  const scoreA=aWeak+aAge+aNew;
+  const scoreB=bWeak+bAge+bNew;
+
+  return scoreB-scoreA || Math.random()-0.5;
+ });
+
+ const selected=sorted.slice(0,15);
+
+ if(!selected.length){
+  alert("Todavía no hay frases para repasar.");
+  return;
+ }
+
+ currentLevel=null;
+ currentPart=null;
+ sessionType=type;
+ sessionIds=selected.map(x=>x.id);
+
+ renderSession();
+}
 
 function startSession(level,type,part=null){
  const pool=data.filter(x=>x.level===level && (part===null || Number(x.part)===Number(part)));
@@ -562,8 +652,12 @@ function renderSession(){
    <button class="btn smallbtn" onclick="currentPart!==null?openPart('${currentLevel}',currentPart):openLevel('${currentLevel}')">← Salir</button>
    <div style="flex:1;text-align:center">
     <b>${typeLabel}</b>
-    <div class="muted small">${currentLevel}${currentPart!==null?` · Parte ${currentPart}`:""} · ${arr.length} frases · v1.6</div>
-   </div>
+<div class="muted small">
+ ${currentLevel
+   ? `${currentLevel}${currentPart!==null?` · Parte ${currentPart}`:""}`
+   : "Repaso general"
+ } · ${arr.length} frases · v1.7
+</div>   </div>
   </div>
   <div class="card study-intro">
     <div class="muted small">${intro}</div>
@@ -634,6 +728,7 @@ function sessionPhraseCard(x,num){
 
 function checkAllAnswer(id){
  const x=data.find(a=>String(a.id)===String(id));
+ registerPhrasePractice(x);
  const input=document.getElementById(`answer-${id}`);
  const fb=document.getElementById(`feedback-${id}`);
  if(!x||!input||!fb)return;
