@@ -49,11 +49,12 @@ function addAudioSeconds(seconds){
  saveAudioStats();
 }
 function formatAudioMinutes(){
- const minutes=Math.floor(audioStats.seconds/60);
- const seconds=Math.floor(audioStats.seconds%60);
- if(minutes<1)return seconds+" s";
- if(seconds===0)return minutes+" min";
- return minutes+" min "+seconds+" s";
+ const totalMinutes=Math.floor(audioStats.seconds/60);
+ const hours=Math.floor(totalMinutes/60);
+ const minutes=totalMinutes%60;
+ if(hours===0)return minutes+" min";
+ if(minutes===0)return hours+" h";
+ return hours+" h "+minutes+" min";
 }
 function loadStreak(){
  try{
