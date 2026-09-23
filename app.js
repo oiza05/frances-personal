@@ -4,6 +4,7 @@ const DB_VERSION=1;
 const DB_STORE="app";
 const DB_DATA_KEY="library";
 const DB_META_KEY="meta";
+const AUDIO_STATS_KEY="frances-audio-stats";
 const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
 const APP_VERSION="v1.7";
@@ -11,6 +12,7 @@ let syncConfig=null;
 let syncClient=null;
 let syncUser=null;
 let syncBusy=false;
+let audioStats={seconds:0};
 const sample=[
  {id:1,es:"Hola, ¿cómo estás?",fr:"Bonjour, comment ça va ?",level:"A1",tags:["Conversación","Saludos"],pronunciationStars:2,translationStars:2},
  {id:2,es:"Quisiera un café, por favor.",fr:"Je voudrais un café, s'il vous plaît.",level:"A1",tags:["Restaurante","Peticiones"],pronunciationStars:1,translationStars:2},
@@ -28,8 +30,31 @@ let streakData={
  lastDate:null
 };
 loadStreak();
+loadAudioStats();
 let dbReady=false;
 let saveTimer=null;
+function loadAudioStats(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(AUDIO_STATS_KEY)||"null");
+  if(saved && typeof saved==="object")audioStats={seconds:Math.max(0,Number(saved.seconds)||0)};
+ }catch(e){audioStats={seconds:0}}
+}
+function saveAudioStats(){
+ try{localStorage.setItem(AUDIO_STATS_KEY,JSON.stringify(audioStats));}catch(e){}
+}
+function addAudioSeconds(seconds){
+ const n=Math.max(0,Number(seconds)||0);
+ if(!n)return;
+ audioStats.seconds+=n;
+ saveAudioStats();
+}
+function formatAudioMinutes(){
+ const minutes=Math.floor(audioStats.seconds/60);
+ const seconds=Math.floor(audioStats.seconds%60);
+ if(minutes<1)return seconds+" s";
+ if(seconds===0)return minutes+" min";
+ return minutes+" min "+seconds+" s";
+}
 function loadStreak(){
  try{
   const saved=JSON.parse(localStorage.getItem("frances-streak"));
@@ -286,7 +311,7 @@ async function syncPush(){
  try{
   const c=await ensureClient();if(!c)return;
   syncBusy=true;
-  const payload={phrases:data.map(migratePhrase),localUpdatedAt};
+  const payload={phrases:data.map(migratePhrase),localUpdatedAt,audioSeconds:audioStats.seconds};
   const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(localUpdatedAt).toISOString()},{onConflict:"user_id"});
   if(error)throw error;
   setDataStatus("☁️ Sincronizado");
@@ -302,17 +327,17 @@ async function syncNow(){
   syncMsg("Comparando datos…");
   const remote=await syncPullRemote();
   if(!remote.exists){
-   const payload={phrases:data.map(migratePhrase),localUpdatedAt};
+   const payload={phrases:data.map(migratePhrase),localUpdatedAt,audioSeconds:audioStats.seconds};
    const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(localUpdatedAt).toISOString()},{onConflict:"user_id"});
    if(error)throw error;
    syncMsg("☁️ Biblioteca subida por primera vez.");return;
   }
   if(remote.updatedAt>localUpdatedAt){
    const incoming=Array.isArray(remote.data?.phrases)?remote.data.phrases:null;
-   if(incoming){data=incoming.map(migratePhrase);localUpdatedAt=remote.updatedAt;await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});renderCurrent();syncMsg("☁️ Datos descargados desde la nube.");return;}
+   if(incoming){data=incoming.map(migratePhrase);if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(0,Number(remote.data.audioSeconds));saveAudioStats();localUpdatedAt=remote.updatedAt;await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});renderCurrent();syncMsg("☁️ Datos descargados desde la nube.");return;}
   }
   if(localUpdatedAt>remote.updatedAt){
-   const payload={phrases:data.map(migratePhrase),localUpdatedAt};
+   const payload={phrases:data.map(migratePhrase),localUpdatedAt,audioSeconds:audioStats.seconds};
    const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(localUpdatedAt).toISOString()},{onConflict:"user_id"});
    if(error)throw error;
    syncMsg("☁️ Datos locales subidos a la nube.");return;
@@ -373,7 +398,7 @@ function statistics(){
     <div class="card"><div class="muted small">Frases</div><div style="font-size:28px;font-weight:800">${total}</div><div class="muted small">en tu biblioteca</div></div>
     <div class="card"><div class="muted small">Dominadas</div><div style="font-size:28px;font-weight:800">${mastered}</div><div class="muted small">4⭐ o más en ambas áreas</div></div>
     <div class="card"><div class="muted small">Practicadas</div><div style="font-size:28px;font-weight:800">${practiced}</div><div class="muted small">al menos una vez</div></div>
-    <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${learnedWords}</div><div class="muted small">palabras únicas de frases dominadas</div></div>
+    <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${learnedWords}</div><div class="muted small">palabras únicas de frases dominadas</div></div>\n    <div class="card"><div class="muted small">🎧 Audio escuchado</div><div style="font-size:28px;font-weight:800">${formatAudioMinutes()}</div><div class="muted small">tiempo total de reproducción</div></div>
    </div>
    <div class="card" style="margin-top:16px">
     <div class="section-head" style="margin-bottom:12px"><div><b>🎯 Dominio general</b><div class="muted small">Promedio de traducción y pronunciación.</div></div><b style="font-size:24px">${overall}%</b></div>
@@ -873,6 +898,7 @@ function cleanSpeechText(value){
   .trim();
 }
 let speechBusy=false;
+let speechStartedAt=0;
 function playPartAudio(items){
  if(!('speechSynthesis' in window)){
   alert('Este navegador no admite reproducción de voz.');
@@ -910,11 +936,13 @@ function playNextPartAudio(){
  }catch(e){}
  const u=new SpeechSynthesisUtterance(phrase);
  u.lang='fr-FR';
+ u.onstart=()=>{speechStartedAt=performance.now();};
  u.rate=0.88;
  u.pitch=1;
  const voice=getFrenchVoice();
  if(voice)u.voice=voice;
  u.onend=()=>{
+  if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}
   if(!partAudioPlaying)return;
   partAudioIndex++;
   partAudioTimer=setTimeout(()=>{
@@ -922,6 +950,7 @@ function playNextPartAudio(){
   },1000);
  };
  u.onerror=(event)=>{
+  if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}
   if(!partAudioPlaying)return;
   console.warn(
    'SpeechSynthesis error:',
@@ -982,9 +1011,10 @@ function speak(text){
   u.pitch=1;
   const voice=getFrenchVoice();
   if(voice)u.voice=voice;
-  u.onstart=()=>setSpeechStatus('🔊 Reproduciendo…');
-  u.onend=()=>{speechBusy=false;setSpeechStatus('✅ Audio terminado');};
+  u.onstart=()=>{speechStartedAt=performance.now();setSpeechStatus('🔊 Reproduciendo…');};
+  u.onend=()=>{if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}speechBusy=false;setSpeechStatus('✅ Audio terminado');};
   u.onerror=(event)=>{
+   if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}
    speechBusy=false;
    console.warn('SpeechSynthesis error:',event?.error||'unknown',phrase);
    setSpeechStatus('⚠️ No se pudo reproducir esta frase.');
