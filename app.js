@@ -30,17 +30,26 @@ let streakData={
  lastDate:null
 };
 loadStreak();
-loadAudioStats();
 let dbReady=false;
 let saveTimer=null;
-function loadAudioStats(){
+async function loadAudioStats(){
+ let localSeconds=0;
  try{
   const saved=JSON.parse(localStorage.getItem(AUDIO_STATS_KEY)||"null");
-  if(saved && typeof saved==="object")audioStats={seconds:Math.max(0,Number(saved.seconds)||0)};
- }catch(e){audioStats={seconds:0}}
+  if(saved && typeof saved==="object")localSeconds=Math.max(0,Number(saved.seconds)||0);
+ }catch(e){}
+ let dbSeconds=0;
+ try{
+  const saved=await dbGet("audioStats");
+  dbSeconds=Math.max(0,Number(saved?.seconds)||0);
+ }catch(e){}
+ audioStats={seconds:Math.max(localSeconds,dbSeconds)};
+ saveAudioStats();
+ try{await dbSet("audioStats",audioStats)}catch(e){}
 }
 function saveAudioStats(){
  try{localStorage.setItem(AUDIO_STATS_KEY,JSON.stringify(audioStats));}catch(e){}
+ try{dbSet("audioStats",audioStats).catch(()=>{})}catch(e){}
 }
 function addAudioSeconds(seconds){
  const n=Math.max(0,Number(seconds)||0);
@@ -335,7 +344,7 @@ async function syncNow(){
   }
   if(remote.updatedAt>localUpdatedAt){
    const incoming=Array.isArray(remote.data?.phrases)?remote.data.phrases:null;
-   if(incoming){data=incoming.map(migratePhrase);if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(0,Number(remote.data.audioSeconds));saveAudioStats();localUpdatedAt=remote.updatedAt;await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});renderCurrent();syncMsg("☁️ Datos descargados desde la nube.");return;}
+   if(incoming){data=incoming.map(migratePhrase);if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(audioStats.seconds,Number(remote.data.audioSeconds)||0);saveAudioStats();localUpdatedAt=remote.updatedAt;await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});renderCurrent();syncMsg("☁️ Datos descargados desde la nube.");return;}
   }
   if(localUpdatedAt>remote.updatedAt){
    const payload={phrases:data.map(migratePhrase),localUpdatedAt,audioSeconds:audioStats.seconds};
@@ -1048,6 +1057,7 @@ function renderCurrent(){
 }
 (async function init(){
  await loadData();
+ await loadAudioStats();
  await syncInit();
  home();
 })();
