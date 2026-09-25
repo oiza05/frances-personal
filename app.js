@@ -110,6 +110,13 @@ function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date
 function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();}
 function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();}
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
+function getTodayLearnedWords(){
+ const words=new Set();
+ data.filter(x=>todayStats.phraseIds.some(id=>String(id)===String(x.id))).forEach(x=>{
+  normalize(x.fr).split(" ").filter(Boolean).forEach(word=>words.add(word));
+ });
+ return words.size;
+}
 function getYesterdayKey(){
  const d=new Date();
  d.setDate(d.getDate()-1);
