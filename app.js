@@ -807,6 +807,8 @@ function checkAllAnswer(id){
  if(exact){
   const starsByMistakes=Math.max(1,5-translationMistakes[id]);
   x.translationStars=starsByMistakes;
+  const rating=document.querySelector(`#study-${CSS.escape(String(id))} .all-translation-rating .stars`);
+  if(rating)rating.outerHTML=stars(x.translationStars,x.id,"translation");
   registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback correct-feedback">'+
@@ -818,6 +820,8 @@ function checkAllAnswer(id){
   translationMistakes[id]++;
   const starsByMistakes=Math.max(1,5-translationMistakes[id]);
   x.translationStars=starsByMistakes;
+  const rating=document.querySelector(`#study-${CSS.escape(String(id))} .all-translation-rating .stars`);
+  if(rating)rating.outerHTML=stars(x.translationStars,x.id,"translation");
   registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback wrong-feedback">'+
