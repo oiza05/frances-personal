@@ -442,9 +442,6 @@ function statistics(){
       return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${arr.length} frases</span><span>${pctAll===null?"—":pctAll+"%"}</span></div><div class="level-progress"><span style="width:${pctAll===null?0:pctAll}%"></span></div></div>`;
     }).join("")}
    </div></div>
-    </section>`;
-}
-function home(){
    <div class="card" style="margin-top:16px">
     <div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div>
     <div class="level-grid">
@@ -453,7 +450,9 @@ function home(){
      <div class="card"><div class="muted small">🎧 Audio hoy</div><div style="font-size:28px;font-weight:800">${formatTodayAudio()}</div><div class="muted small">tiempo escuchado hoy</div></div>
     </div>
    </div>
-  </section>
+  </section>`;
+}
+function home(){
  const counts=Object.fromEntries(levels.map(l=>[l,data.filter(x=>x.level===l).length]));
  const total=data.length;
  document.getElementById("main").innerHTML=`
