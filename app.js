@@ -505,7 +505,7 @@ function home(){
  </div>
  <div class="card">
   <div><b>🎯 Meta de hoy</b></div>
-  <div style="margin-top:10px;font-weight:700">🔁 ${Math.min(todayStats.practices,150)}/150 repes</div>
+  <div style="margin-top:10px;font-weight:700">🔁 ${todayStats.practices}/150 repes</div>
   <div class="muted small" style="margin-top:5px">🎧 ${formatTodayAudio()} / 5 min de audio</div>
  </div>
 </div>
