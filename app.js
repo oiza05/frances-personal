@@ -5,6 +5,7 @@ const DB_STORE="app";
 const DB_DATA_KEY="library";
 const DB_META_KEY="meta";
 const AUDIO_STATS_KEY="frances-audio-stats";
+const TODAY_STATS_KEY="frances-today-stats";
 const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
 const APP_VERSION="v1.7";
@@ -13,6 +14,7 @@ let syncClient=null;
 let syncUser=null;
 let syncBusy=false;
 let audioStats={seconds:0};
+let todayStats={date:null,practices:0,phraseIds:[],audioSeconds:0};
 const sample=[
  {id:1,es:"Hola, ¿cómo estás?",fr:"Bonjour, comment ça va ?",level:"A1",tags:["Conversación","Saludos"],pronunciationStars:2,translationStars:2},
  {id:2,es:"Quisiera un café, por favor.",fr:"Je voudrais un café, s'il vous plaît.",level:"A1",tags:["Restaurante","Peticiones"],pronunciationStars:1,translationStars:2},
@@ -30,6 +32,7 @@ let streakData={
  lastDate:null
 };
 loadStreak();
+loadTodayStats();
 let dbReady=false;
 let saveTimer=null;
 async function loadAudioStats(){
@@ -56,6 +59,7 @@ function addAudioSeconds(seconds){
  if(!n)return;
  audioStats.seconds+=n;
  saveAudioStats();
+ registerTodayAudio(n);
 }
 function formatAudioMinutes(){
  const totalMinutes=Math.floor(audioStats.seconds/60);
@@ -93,6 +97,19 @@ function getTodayKey(){
  const day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
 }
+function loadTodayStats(){
+ const today=getTodayKey();
+ try{
+  const saved=JSON.parse(localStorage.getItem(TODAY_STATS_KEY)||"null");
+  if(saved?.date===today){todayStats={date:today,practices:Number(saved.practices)||0,phraseIds:Array.isArray(saved.phraseIds)?saved.phraseIds:[],audioSeconds:Number(saved.audioSeconds)||0};return;}
+ }catch(e){}
+ todayStats={date:today,practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();
+}
+function saveTodayStats(){try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}}
+function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
+function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();}
+function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();}
+function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
 function getYesterdayKey(){
  const d=new Date();
  d.setDate(d.getDate()-1);
@@ -372,6 +389,7 @@ function registerPhrasePractice(x){
  if(!x)return;
  x.practiceCount=(Number(x.practiceCount)||0)+1;
  x.lastPracticed=new Date().toISOString();
+ registerTodayPractice(x.id);
  save();
 }
 window.rate=(id,n,type)=>{
@@ -424,9 +442,15 @@ function statistics(){
       return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${arr.length} frases</span><span>${pctAll===null?"—":pctAll+"%"}</span></div><div class="level-progress"><span style="width:${pctAll===null?0:pctAll}%"></span></div></div>`;
     }).join("")}
    </div></div>
-  </section>`;
-}
-function home(){
+   <div class="card" style="margin-top:16px">
+    <div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div>
+    <div class="level-grid">
+     <div class="card"><div class="muted small">Prácticas</div><div style="font-size:28px;font-weight:800">${todayStats.practices}</div><div class="muted small">veces practicadas hoy</div></div>
+     <div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div>
+     <div class="card"><div class="muted small">🎧 Audio hoy</div><div style="font-size:28px;font-weight:800">${formatTodayAudio()}</div><div class="muted small">tiempo escuchado hoy</div></div>
+    </div>
+   </div>
+  </section>
  const counts=Object.fromEntries(levels.map(l=>[l,data.filter(x=>x.level===l).length]));
  const total=data.length;
  document.getElementById("main").innerHTML=`
