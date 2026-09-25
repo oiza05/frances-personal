@@ -453,11 +453,13 @@ function statistics(){
     <div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div>
     <div class="level-grid">
      <div class="card"><div class="muted small">Prácticas</div><div style="font-size:28px;font-weight:800">${todayStats.practices}</div><div class="muted small">veces practicadas hoy</div></div>
-     <div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div>
+     <div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div>\n     <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${getTodayLearnedWords()}</div><div class="muted small">palabras de las frases trabajadas hoy</div></div>
      <div class="card"><div class="muted small">🎧 Audio hoy</div><div style="font-size:28px;font-weight:800">${formatTodayAudio()}</div><div class="muted small">tiempo escuchado hoy</div></div>
     </div>
    </div>
-  </section>
+  </section>`;
+}
+function home(){
  const counts=Object.fromEntries(levels.map(l=>[l,data.filter(x=>x.level===l).length]));
  const total=data.length;
  document.getElementById("main").innerHTML=`
