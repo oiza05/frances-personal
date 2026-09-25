@@ -442,6 +442,9 @@ function statistics(){
       return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${arr.length} frases</span><span>${pctAll===null?"—":pctAll+"%"}</span></div><div class="level-progress"><span style="width:${pctAll===null?0:pctAll}%"></span></div></div>`;
     }).join("")}
    </div></div>
+    </section>`;
+}
+function home(){
    <div class="card" style="margin-top:16px">
     <div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div>
     <div class="level-grid">
