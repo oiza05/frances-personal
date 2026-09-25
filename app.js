@@ -165,6 +165,32 @@ function normalize(value){
    .replace(/\s+/g," ")
    .trim();
 }
+function translationErrorCount(expected, actual){
+ const tokenize=value=>String(value??"")
+  .toLocaleLowerCase()
+  .normalize("NFC")
+  .replace(/[’‘]/g,"'")
+  .replace(/[¿?¡!.,;:()[\\]{}"“”]/g," ")
+  .replace(/\\s+/g," ")
+  .trim()
+  .split(" ")
+  .filter(Boolean);
+ const a=tokenize(expected), b=tokenize(actual);
+ const dp=Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));
+ for(let i=0;i<=a.length;i++)dp[i][0]=i;
+ for(let j=0;j<=b.length;j++)dp[0][j]=j;
+ for(let i=1;i<=a.length;i++){
+  for(let j=1;j<=b.length;j++){
+   const cost=a[i-1]===b[j-1]?0:1;
+   dp[i][j]=Math.min(
+    dp[i-1][j]+1,
+    dp[i][j-1]+1,
+    dp[i-1][j-1]+cost
+   );
+  }
+ }
+ return dp[a.length][b.length];
+}
 function masteryPercent(arr, key){
  if(!arr.length)return null;
  const avg=arr.reduce((sum,x)=>{
@@ -800,16 +826,14 @@ function checkAllAnswer(id){
   input.focus();
   return;
  }
- if(!translationMistakes[id])translationMistakes[id]=0;
- const got=normalize(raw);
- const expected=normalize(x.fr);
- const exact=got===expected;
+ const errors=translationErrorCount(x.fr,raw);
+ const exact=errors===0;
+ const starsByMistakes=Math.max(1,5-errors);
+ x.translationStars=starsByMistakes;
+ const rating=document.querySelector(`#study-${CSS.escape(String(id))} .all-translation-rating .stars`);
+ if(rating)rating.outerHTML=stars(x.translationStars,x.id,"translation");
+ registerPhrasePractice(x);
  if(exact){
-  const starsByMistakes=Math.max(1,5-translationMistakes[id]);
-  x.translationStars=starsByMistakes;
-  const rating=document.querySelector(`#study-${CSS.escape(String(id))} .all-translation-rating .stars`);
-  if(rating)rating.outerHTML=stars(x.translationStars,x.id,"translation");
-  registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback correct-feedback">'+
    '<b>✅ ¡Correcto!</b><br>'+
@@ -817,19 +841,13 @@ function checkAllAnswer(id){
    '</div>';
   input.disabled=true;
  }else{
-  translationMistakes[id]++;
-  const starsByMistakes=Math.max(1,5-translationMistakes[id]);
-  x.translationStars=starsByMistakes;
-  const rating=document.querySelector(`#study-${CSS.escape(String(id))} .all-translation-rating .stars`);
-  if(rating)rating.outerHTML=stars(x.translationStars,x.id,"translation");
-  registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback wrong-feedback">'+
    '<b>❌ Hay una diferencia.</b>'+
    '<div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div>'+
    '<div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br>'+
    '<b class="expected-answer">'+escapeHtml(x.fr)+'</b></div>'+
-   '<div style="margin-top:10px"><span class="muted">Fallos: '+translationMistakes[id]+' · Dominio actual: '+starsByMistakes+' ⭐</span></div>'+
+   '<div style="margin-top:10px"><span class="muted">Errores detectados: '+errors+' · Dominio actual: '+starsByMistakes+' ⭐</span></div>'+
    '</div>';
   input.focus();
  }
