@@ -110,6 +110,13 @@ function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date
 function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();}
 function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();}
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
+function getTodayLearnedWords(){
+ const words=new Set();
+ data.filter(x=>todayStats.phraseIds.some(id=>String(id)===String(x.id))).forEach(x=>{
+  normalize(x.fr).split(" ").filter(Boolean).forEach(word=>words.add(word));
+ });
+ return words.size;
+}
 function getYesterdayKey(){
  const d=new Date();
  d.setDate(d.getDate()-1);
@@ -446,7 +453,7 @@ function statistics(){
     <div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div>
     <div class="level-grid">
      <div class="card"><div class="muted small">Prácticas</div><div style="font-size:28px;font-weight:800">${todayStats.practices}</div><div class="muted small">veces practicadas hoy</div></div>
-     <div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div>
+     <div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div>\n     <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${getTodayLearnedWords()}</div><div class="muted small">palabras de las frases trabajadas hoy</div></div>
      <div class="card"><div class="muted small">🎧 Audio hoy</div><div style="font-size:28px;font-weight:800">${formatTodayAudio()}</div><div class="muted small">tiempo escuchado hoy</div></div>
     </div>
    </div>
