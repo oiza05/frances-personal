@@ -112,9 +112,10 @@ function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+
 function checkDailyGoal(){
  ensureTodayStats();
  const met=todayStats.practices>=150 && todayStats.audioSeconds>=300;
- if(!met || streakData.lastDate===getTodayKey())return;
+ if(!met || streakData.lastDate===getTodayKey())return false;
  registerStudyDay();
  if(typeof home==="function" && document.getElementById("main")?.dataset.view==="home")home();
+ return true;
 }
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
 function getTodayLearnedWords(){
@@ -769,9 +770,9 @@ function renderSession(){
 </div>`;
 }
 function finishSession(){
-  checkDailyGoal();
+  const goalCompleted=checkDailyGoal();
 
-  if(currentLevel===null){
+  if(currentLevel===null || goalCompleted){
     goHome();
     return;
   }
