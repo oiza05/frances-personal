@@ -505,8 +505,8 @@ function home(){
  </div>
  <div class="card">
   <div><b>🎯 Meta de hoy</b></div>
-  <div style="margin-top:10px;font-weight:700">🔁 ${todayStats.practices}/150 repes</div>
-  <div style="margin-top:5px;font-weight:700">🎧 ${formatTodayAudio()} / 5 min de audio</div>
+  <div style="margin-top:10px">🔁 ${todayStats.practices}/150 repes</div>
+  <div style="margin-top:5px">🎧 ${formatTodayAudio()} / 5 min de audio</div>
  </div>
 </div>
 <div class="card" style="margin-bottom:16px">
