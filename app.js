@@ -800,26 +800,35 @@ function checkAllAnswer(id){
   input.focus();
   return;
  }
- registerPhrasePractice(x);
+ if(!translationMistakes[id])translationMistakes[id]=0;
  const got=normalize(raw);
  const expected=normalize(x.fr);
  const exact=got===expected;
  if(exact){
+  const starsByMistakes=Math.max(1,5-translationMistakes[id]);
+  x.translationStars=starsByMistakes;
+  registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback correct-feedback">'+
    '<b>✅ ¡Correcto!</b><br>'+
-   '<span class="muted">Tu respuesta coincide con la frase esperada.</span>'+
+   '<span class="muted">Tu respuesta coincide con la frase esperada. Dominio: '+starsByMistakes+' ⭐</span>'+
    '</div>';
+  input.disabled=true;
  }else{
+  translationMistakes[id]++;
+  const starsByMistakes=Math.max(1,5-translationMistakes[id]);
+  x.translationStars=starsByMistakes;
+  registerPhrasePractice(x);
   fb.innerHTML=
    '<div class="feedback wrong-feedback">'+
    '<b>❌ Hay una diferencia.</b>'+
    '<div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div>'+
    '<div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br>'+
    '<b class="expected-answer">'+escapeHtml(x.fr)+'</b></div>'+
+   '<div style="margin-top:10px"><span class="muted">Fallos: '+translationMistakes[id]+' · Dominio actual: '+starsByMistakes+' ⭐</span></div>'+
    '</div>';
+  input.focus();
  }
- input.disabled=true;
 }
 function toggleSpanishById(id){
  document.getElementById(`spanish-${id}`)?.classList.toggle("hidden");
@@ -940,6 +949,7 @@ function cleanSpeechText(value){
   .replace(/\s+/g,' ')
   .trim();
 }
+let translationMistakes={};
 let speechBusy=false;
 let speechStartedAt=0;
 function playPartAudio(items){
