@@ -107,8 +107,15 @@ function loadTodayStats(){
 }
 function saveTodayStats(){try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}}
 function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
-function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();}
-function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();}
+function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();checkDailyGoal();}
+function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();checkDailyGoal();}
+function checkDailyGoal(){
+ ensureTodayStats();
+ const met=todayStats.practices>=150 && todayStats.audioSeconds>=300;
+ if(!met || streakData.lastDate===getTodayKey())return;
+ registerStudyDay();
+ if(typeof home==="function" && document.getElementById("main")?.dataset.view==="home")home();
+}
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
 function getTodayLearnedWords(){
  const words=new Set();
@@ -490,13 +497,16 @@ function home(){
  const total=data.length;
  document.getElementById("main").innerHTML=`
   <section>
-  <div class="card" style="margin-bottom:16px">
- <div style="font-size:28px;font-weight:800">
-  🔥 ${streakData.current}
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px">
+ <div class="card">
+  <div style="font-size:28px;font-weight:800">🔥 ${streakData.current}</div>
+  <div><b>días de racha</b></div>
+  <div class="muted small" style="margin-top:4px">Récord: ${streakData.best} días</div>
  </div>
- <div><b>días de racha</b></div>
- <div class="muted small" style="margin-top:4px">
-  Récord: ${streakData.best} días
+ <div class="card">
+  <div><b>🎯 Meta de hoy</b></div>
+  <div style="margin-top:10px;font-weight:700">🔁 ${Math.min(todayStats.practices,150)}/150 repes</div>
+  <div class="muted small" style="margin-top:5px">🎧 ${formatTodayAudio()} / 5 min de audio</div>
  </div>
 </div>
 <div class="card" style="margin-bottom:16px">
@@ -759,7 +769,7 @@ function renderSession(){
 </div>`;
 }
 function finishSession(){
-  registerStudyDay();
+  checkDailyGoal();
 
   if(currentLevel===null){
     goHome();
