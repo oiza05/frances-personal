@@ -176,6 +176,25 @@ function getYesterdayKey(){
  const day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
 }
+function testStreakLogic(){
+ const original={...streakData};
+ const today=getTodayKey();
+ const yesterday=getYesterdayKey();
+ const simulated={current:1,best:1,lastDate:yesterday};
+ const next=simulated.lastDate===yesterday ? simulated.current+1 : 1;
+ const passed=next===2;
+ streakData={...original};
+ return {
+  passed,
+  expected:2,
+  simulatedBefore:simulated.current,
+  simulatedAfter:next,
+  today,
+  yesterday
+ };
+}
+window.testStreakLogic=testStreakLogic;
+
 function registerStudyDay(){
  const today=getTodayKey();
  // Ya se ha estudiado hoy
