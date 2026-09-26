@@ -481,15 +481,41 @@ function mergeStreak(remoteStreak){
  const before=JSON.stringify(streakData);
  const remoteDate=remoteStreak.lastDate||null;
  const localDate=streakData.lastDate||null;
+ const remoteCurrent=Number(remoteStreak.current)||0;
+ const remoteBest=Number(remoteStreak.best)||0;
  if(remoteDate===localDate){
-  streakData.current=Math.max(streakData.current,Number(remoteStreak.current)||0);
-  streakData.best=Math.max(streakData.best,Number(remoteStreak.best)||0);
- }else if(remoteDate && (!localDate || remoteDate>localDate)){
-  streakData.current=Number(remoteStreak.current)||0;
+  streakData.current=Math.max(streakData.current,remoteCurrent);
+  streakData.best=Math.max(streakData.best,remoteBest);
+ }else if(remoteDate && localDate){
+  const localIsAfterRemote=localDate>remoteDate;
+  const remoteIsYesterday=remoteDate===getYesterdayKey();
+  const localIsToday=localDate===getTodayKey();
+  const localIsYesterday=localDate===getYesterdayKey();
+  const remoteIsToday=remoteDate===getTodayKey();
+
+  // Un dispositivo puede haber registrado hoy antes de recibir la racha de ayer.
+  // En ese caso, unir ambas rachas evita que 1 sobrescriba una racha que debía pasar a 2.
+  if(localIsToday && remoteIsYesterday){
+   streakData.current=Math.max(streakData.current,remoteCurrent+1);
+   streakData.lastDate=localDate;
+   streakData.best=Math.max(streakData.best,remoteBest,streakData.current);
+  }else if(localIsYesterday && remoteIsToday){
+   streakData.current=Math.max(remoteCurrent,streakData.current+1);
+   streakData.lastDate=remoteDate;
+   streakData.best=Math.max(streakData.best,remoteBest,streakData.current);
+  }else if(localIsAfterRemote){
+   streakData.best=Math.max(streakData.best,remoteBest);
+  }else{
+   streakData.current=remoteCurrent;
+   streakData.lastDate=remoteDate;
+   streakData.best=Math.max(streakData.best,remoteBest);
+  }
+ }else if(remoteDate){
+  streakData.current=remoteCurrent;
   streakData.lastDate=remoteDate;
-  streakData.best=Math.max(streakData.best,Number(remoteStreak.best)||0);
+  streakData.best=Math.max(streakData.best,remoteBest);
  }else{
-  streakData.best=Math.max(streakData.best,Number(remoteStreak.best)||0);
+  streakData.best=Math.max(streakData.best,remoteBest);
  }
  saveStreakLocalOnly();
  return before!==JSON.stringify(streakData);
