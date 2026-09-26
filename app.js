@@ -16,7 +16,7 @@ let syncClient=null;
 let syncUser=null;
 let syncBusy=false;
 let audioStats={seconds:0};
-let todayStats={date:null,practices:0,phraseIds:[],audioSeconds:0};
+let todayStats={date:null,practices:0,phraseIds:[],audioSeconds:0,basePractices:0,baseAudioSeconds:0};
 let todayEvents=[];
 const sample=[
  {id:1,es:"Hola, ¿cómo estás?",fr:"Bonjour, comment ça va ?",level:"A1",tags:["Conversación","Saludos"],pronunciationStars:2,translationStars:2},
@@ -106,9 +106,9 @@ function loadTodayStats(){
  const today=getTodayKey();
  try{
   const saved=JSON.parse(localStorage.getItem(TODAY_STATS_KEY)||"null");
-  if(saved?.date===today){todayStats={date:today,practices:Number(saved.practices)||0,phraseIds:Array.isArray(saved.phraseIds)?saved.phraseIds:[],audioSeconds:Number(saved.audioSeconds)||0};return;}
+  if(saved?.date===today){todayStats={date:today,practices:Number(saved.practices)||0,phraseIds:Array.isArray(saved.phraseIds)?saved.phraseIds:[],audioSeconds:Number(saved.audioSeconds)||0,basePractices:Number(saved.basePractices ?? saved.practices)||0,baseAudioSeconds:Number(saved.baseAudioSeconds ?? saved.audioSeconds)||0};return;}
  }catch(e){}
- todayStats={date:today,practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();
+ todayStats={date:today,practices:0,phraseIds:[],audioSeconds:0,basePractices:0,baseAudioSeconds:0};saveTodayStats();
 }
 function getDeviceId(){
  try{
@@ -143,7 +143,7 @@ function markSyncDataChanged(){
   syncTimer=setTimeout(()=>{syncTimer=null;syncNow();},400);
  }
 }
-function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
+function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0,basePractices:0,baseAudioSeconds:0};saveTodayStats();}}
 function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);recordTodayEvent("practice",1);saveTodayStats();checkDailyGoal();}
 function registerTodayAudio(seconds){ensureTodayStats();const n=Math.max(0,Number(seconds)||0);todayStats.audioSeconds+=n;recordTodayEvent("audio",n);saveTodayStats();checkDailyGoal();}
 function checkDailyGoal(){
@@ -437,8 +437,12 @@ function mergeTodayStats(remoteStats,remoteEvents){
  todayEvents=[...byId.values()];
  const practiceEvents=todayEvents.filter(e=>e.type==="practice");
  const audioEvents=todayEvents.filter(e=>e.type==="audio");
- todayStats.practices=practiceEvents.length;
- todayStats.audioSeconds=audioEvents.reduce((sum,e)=>sum+(Number(e.value)||0),0);
+ const remoteBasePractices=Number(remoteStats.basePractices ?? remoteStats.practices)||0;
+ const remoteBaseAudio=Number(remoteStats.baseAudioSeconds ?? remoteStats.audioSeconds)||0;
+ todayStats.basePractices=Math.max(Number(todayStats.basePractices)||0,remoteBasePractices);
+ todayStats.baseAudioSeconds=Math.max(Number(todayStats.baseAudioSeconds)||0,remoteBaseAudio);
+ todayStats.practices=todayStats.basePractices+practiceEvents.length;
+ todayStats.audioSeconds=todayStats.baseAudioSeconds+audioEvents.reduce((sum,e)=>sum+(Number(e.value)||0),0);
  const ids=new Set(todayStats.phraseIds.map(x=>String(x)));
  (Array.isArray(remoteStats.phraseIds)?remoteStats.phraseIds:[]).forEach(id=>{if(!ids.has(String(id)))todayStats.phraseIds.push(id);});
  saveTodayEvents();
