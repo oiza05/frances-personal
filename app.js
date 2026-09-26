@@ -89,7 +89,7 @@ function saveStreak(){
  }catch(e){
   console.warn("No se pudo guardar la racha:",e);
  }
- if(syncUser) syncNow();
+ markSyncDataChanged();
 }
 function getTodayKey(){
  const d=new Date();
@@ -108,7 +108,14 @@ function loadTodayStats(){
 }
 function saveTodayStats(){
  try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}
- if(syncUser) syncNow();
+ markSyncDataChanged();
+}
+function markSyncDataChanged(){
+ localUpdatedAt=Math.max(Date.now(),localUpdatedAt+1);
+ if(syncTimer)clearTimeout(syncTimer);
+ if(syncUser){
+  syncTimer=setTimeout(()=>{syncTimer=null;syncNow();},400);
+ }
 }
 function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
 function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();checkDailyGoal();}
@@ -171,6 +178,7 @@ let sessionChecked=false;
 let selectedTag="Todas";
 let libraryQuery="";
 let localUpdatedAt=0;
+let syncTimer=null;
 function normalize(value){
  return String(value ?? "")
    .normalize("NFD")
@@ -407,6 +415,9 @@ function mergeTodayStats(remoteStats){
 function saveTodayStatsLocalOnly(){
  try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}
 }
+function saveStreakLocalOnly(){
+ try{localStorage.setItem("frances-streak",JSON.stringify(streakData));}catch(e){}
+}
 function mergeStreak(remoteStreak){
  if(!remoteStreak || typeof remoteStreak!=="object")return false;
  const before=JSON.stringify(streakData);
@@ -424,9 +435,6 @@ function mergeStreak(remoteStreak){
  }
  saveStreakLocalOnly();
  return before!==JSON.stringify(streakData);
-}
-function saveStreakLocalOnly(){
- try{localStorage.setItem("frances-streak",JSON.stringify(streakData));}catch(e){}
 }
 async function syncPush(){
  if(syncBusy||!syncUser)return;
@@ -454,27 +462,36 @@ async function syncNow(){
    if(error)throw error;
    syncMsg("☁️ Biblioteca subida por primera vez.");return;
   }
+  const localBefore=JSON.stringify({todayStats,streakData,audio:audioStats.seconds});
   const statsChanged=mergeTodayStats(remote.data?.todayStats);
   const streakChanged=mergeStreak(remote.data?.streakData);
   if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(audioStats.seconds,Number(remote.data.audioSeconds)||0);
   saveAudioStats();
   const incoming=Array.isArray(remote.data?.phrases)?remote.data.phrases:null;
-  if(remote.updatedAt>localUpdatedAt && incoming){
+  const remoteLibraryIsNewer=remote.updatedAt>localUpdatedAt && !!incoming;
+  if(remoteLibraryIsNewer){
    data=incoming.map(migratePhrase);
-   localUpdatedAt=remote.updatedAt;
    await dbSet(DB_DATA_KEY,data);
+   localUpdatedAt=remote.updatedAt;
+   await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
+  }
+  const localAfter=JSON.stringify({todayStats,streakData,audio:audioStats.seconds});
+  const statsChangedAfterMerge=localBefore!==localAfter || statsChanged || streakChanged;
+  if(statsChangedAfterMerge || (!remoteLibraryIsNewer && localUpdatedAt>remote.updatedAt)){
+   const payload=buildSyncPayload();
+   const writeAt=Math.max(Date.now(),localUpdatedAt,remote.updatedAt+1);
+   localUpdatedAt=writeAt;
+   const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(writeAt).toISOString()},{onConflict:"user_id"});
+   if(error)throw error;
    await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
    checkDailyGoal();
    renderCurrent();
-   syncMsg("☁️ Datos descargados desde la nube.");
+   syncMsg("☁️ Estadísticas y biblioteca sincronizadas.");
    return;
   }
-  if(localUpdatedAt>remote.updatedAt || statsChanged || streakChanged){
-   const payload=buildSyncPayload();
-   const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(Math.max(localUpdatedAt,remote.updatedAt)).toISOString()},{onConflict:"user_id"});
-   if(error)throw error;
-   syncMsg("☁️ Datos locales y estadísticas sincronizados.");return;
-  }
+  checkDailyGoal();
+  renderCurrent();
+  syncMsg(remoteLibraryIsNewer?"☁️ Datos descargados desde la nube.":"☁️ Todo está sincronizado.");
   checkDailyGoal();
   renderCurrent();
   syncMsg("☁️ Todo está sincronizado.");
