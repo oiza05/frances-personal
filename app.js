@@ -430,7 +430,8 @@ function mergeTodayStats(remoteStats,remoteEvents){
  ensureTodayStats();
  if(!remoteStats || remoteStats.date!==todayStats.date)return false;
  const before=JSON.stringify({todayStats,todayEvents});
- const all=[...todayEvents,...(Array.isArray(remoteEvents)?remoteEvents:[])].filter(e=>e?.date===getTodayKey());
+ const incoming=Array.isArray(remoteEvents?.events)?remoteEvents.events:[];
+ const all=[...todayEvents,...incoming.map(e=>({id:e.event_id,date:e.event_date,type:e.event_type,value:e.value}))].filter(e=>e?.date===getTodayKey());
  const byId=new Map();
  all.forEach(e=>{if(e?.id)byId.set(String(e.id),e);});
  todayEvents=[...byId.values()];
@@ -484,6 +485,14 @@ async function syncNow(){
  syncBusy=true;
  try{
   syncMsg("Comparando datos…");
+  const localEvents=todayEvents.filter(e=>e?.date===getTodayKey());
+  if(localEvents.length){
+   const rows=localEvents.map(e=>({user_id:syncUser.id,event_id:e.id,event_date:e.date,event_type:e.type,value:Number(e.value)||0}));
+   const {error}=await c.from("user_daily_events").upsert(rows,{onConflict:"user_id,event_id"});
+   if(error)throw error;
+  }
+  const {data:remoteEvents,error:eventsError}=await c.from("user_daily_events").select("event_id,event_date,event_type,value").eq("user_id",syncUser.id).eq("event_date",getTodayKey());
+  if(eventsError)throw eventsError;
   const remote=await syncPullRemote();
   if(!remote.exists){
    const payload=buildSyncPayload();
@@ -492,7 +501,7 @@ async function syncNow(){
    syncMsg("☁️ Biblioteca subida por primera vez.");return;
   }
   const localBefore=JSON.stringify({todayStats,streakData,audio:audioStats.seconds});
-  const statsChanged=mergeTodayStats(remote.data?.todayStats,remote.data?.todayEvents);
+  const statsChanged=mergeTodayStats(remote.data?.todayStats,{date:getTodayKey(),events:remoteEvents});
   const streakChanged=mergeStreak(remote.data?.streakData);
   if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(audioStats.seconds,Number(remote.data.audioSeconds)||0);
   saveAudioStats();
