@@ -8,6 +8,8 @@ const AUDIO_STATS_KEY="frances-audio-stats";
 const TODAY_STATS_KEY="frances-today-stats";
 const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
+const SYNC_DEVICE_KEY="frances-personal-sync-device-id";
+const TODAY_EVENTS_KEY="frances-today-events";
 const APP_VERSION="v1.7";
 let syncConfig=null;
 let syncClient=null;
@@ -15,6 +17,7 @@ let syncUser=null;
 let syncBusy=false;
 let audioStats={seconds:0};
 let todayStats={date:null,practices:0,phraseIds:[],audioSeconds:0};
+let todayEvents=[];
 const sample=[
  {id:1,es:"Hola, ¿cómo estás?",fr:"Bonjour, comment ça va ?",level:"A1",tags:["Conversación","Saludos"],pronunciationStars:2,translationStars:2},
  {id:2,es:"Quisiera un café, por favor.",fr:"Je voudrais un café, s'il vous plaît.",level:"A1",tags:["Restaurante","Peticiones"],pronunciationStars:1,translationStars:2},
@@ -33,6 +36,7 @@ let streakData={
 };
 loadStreak();
 loadTodayStats();
+loadTodayEvents();
 let dbReady=false;
 let saveTimer=null;
 async function loadAudioStats(){
@@ -106,6 +110,28 @@ function loadTodayStats(){
  }catch(e){}
  todayStats={date:today,practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();
 }
+function getDeviceId(){
+ try{
+  let id=localStorage.getItem(SYNC_DEVICE_KEY);
+  if(!id){id=crypto.randomUUID();localStorage.setItem(SYNC_DEVICE_KEY,id);}
+  return id;
+ }catch(e){return "device-"+Math.random().toString(36).slice(2);}
+}
+function loadTodayEvents(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(TODAY_EVENTS_KEY)||"[]");
+  todayEvents=Array.isArray(saved)?saved:[];
+ }catch(e){todayEvents=[]}
+}
+function saveTodayEvents(){
+ try{localStorage.setItem(TODAY_EVENTS_KEY,JSON.stringify(todayEvents));}catch(e){}
+}
+function recordTodayEvent(type,value){
+ ensureTodayStats();
+ const event={id:getDeviceId()+"-"+Date.now()+"-"+Math.random().toString(36).slice(2),date:getTodayKey(),type,value:Number(value)||0};
+ todayEvents.push(event);
+ saveTodayEvents();
+}
 function saveTodayStats(){
  try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}
  markSyncDataChanged();
@@ -118,8 +144,8 @@ function markSyncDataChanged(){
  }
 }
 function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
-function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();checkDailyGoal();}
-function registerTodayAudio(seconds){ensureTodayStats();todayStats.audioSeconds+=Math.max(0,Number(seconds)||0);saveTodayStats();checkDailyGoal();}
+function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);recordTodayEvent("practice",1);saveTodayStats();checkDailyGoal();}
+function registerTodayAudio(seconds){ensureTodayStats();const n=Math.max(0,Number(seconds)||0);todayStats.audioSeconds+=n;recordTodayEvent("audio",n);saveTodayStats();checkDailyGoal();}
 function checkDailyGoal(){
  ensureTodayStats();
  const met=todayStats.practices>=150 && todayStats.audioSeconds>=300;
@@ -396,21 +422,27 @@ function buildSyncPayload(){
   localUpdatedAt,
   audioSeconds:audioStats.seconds,
   todayStats:{...todayStats,phraseIds:[...todayStats.phraseIds]},
+  todayEvents:todayEvents.filter(e=>e.date===getTodayKey()),
   streakData:{...streakData}
  };
 }
-function mergeTodayStats(remoteStats){
+function mergeTodayStats(remoteStats,remoteEvents){
  ensureTodayStats();
  if(!remoteStats || remoteStats.date!==todayStats.date)return false;
- const before=JSON.stringify(todayStats);
- todayStats.practices=Math.max(todayStats.practices,Number(remoteStats.practices)||0);
- todayStats.audioSeconds=Math.max(todayStats.audioSeconds,Number(remoteStats.audioSeconds)||0);
+ const before=JSON.stringify({todayStats,todayEvents});
+ const all=[...todayEvents,...(Array.isArray(remoteEvents)?remoteEvents:[])].filter(e=>e?.date===getTodayKey());
+ const byId=new Map();
+ all.forEach(e=>{if(e?.id)byId.set(String(e.id),e);});
+ todayEvents=[...byId.values()];
+ const practiceEvents=todayEvents.filter(e=>e.type==="practice");
+ const audioEvents=todayEvents.filter(e=>e.type==="audio");
+ todayStats.practices=practiceEvents.length;
+ todayStats.audioSeconds=audioEvents.reduce((sum,e)=>sum+(Number(e.value)||0),0);
  const ids=new Set(todayStats.phraseIds.map(x=>String(x)));
- (Array.isArray(remoteStats.phraseIds)?remoteStats.phraseIds:[]).forEach(id=>{
-  if(!ids.has(String(id)))todayStats.phraseIds.push(id);
- });
+ (Array.isArray(remoteStats.phraseIds)?remoteStats.phraseIds:[]).forEach(id=>{if(!ids.has(String(id)))todayStats.phraseIds.push(id);});
+ saveTodayEvents();
  saveTodayStatsLocalOnly();
- return before!==JSON.stringify(todayStats);
+ return before!==JSON.stringify({todayStats,todayEvents});
 }
 function saveTodayStatsLocalOnly(){
  try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}
@@ -460,7 +492,7 @@ async function syncNow(){
    syncMsg("☁️ Biblioteca subida por primera vez.");return;
   }
   const localBefore=JSON.stringify({todayStats,streakData,audio:audioStats.seconds});
-  const statsChanged=mergeTodayStats(remote.data?.todayStats);
+  const statsChanged=mergeTodayStats(remote.data?.todayStats,remote.data?.todayEvents);
   const streakChanged=mergeStreak(remote.data?.streakData);
   if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(audioStats.seconds,Number(remote.data.audioSeconds)||0);
   saveAudioStats();
