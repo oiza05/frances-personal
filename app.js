@@ -437,16 +437,13 @@ function mergeStreak(remoteStreak){
  return before!==JSON.stringify(streakData);
 }
 async function syncPush(){
- if(syncBusy||!syncUser)return;
- try{
-  const c=await ensureClient();if(!c)return;
-  syncBusy=true;
-  const payload=buildSyncPayload();
-  const {error}=await c.from("user_data").upsert({user_id:syncUser.id,data:payload,updated_at:new Date(localUpdatedAt).toISOString()},{onConflict:"user_id"});
-  if(error)throw error;
-  setDataStatus("☁️ Sincronizado");
- }catch(e){setDataStatus("Guardado local · nube pendiente");}
- finally{syncBusy=false;}
+ if(!syncUser)return;
+ if(syncBusy){
+  if(syncTimer)clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{syncTimer=null;syncNow();},500);
+  return;
+ }
+ await syncNow();
 }
 async function syncNow(){
  const c=await ensureClient();
@@ -492,9 +489,6 @@ async function syncNow(){
   checkDailyGoal();
   renderCurrent();
   syncMsg(remoteLibraryIsNewer?"☁️ Datos descargados desde la nube.":"☁️ Todo está sincronizado.");
-  checkDailyGoal();
-  renderCurrent();
-  syncMsg("☁️ Todo está sincronizado.");
  }catch(e){syncMsg("Error de sincronización: "+(e.message||e))}
  finally{syncBusy=false}
 }
