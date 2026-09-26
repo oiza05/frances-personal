@@ -382,7 +382,7 @@ async function syncPullRemote(){
  if(!row)return {exists:false};
  return {exists:true,data:row.data,updatedAt:new Date(row.updated_at).getTime()};
 }
-async function buildSyncPayload(){
+function buildSyncPayload(){
  return {
   phrases:data.map(migratePhrase),
   localUpdatedAt,
@@ -428,7 +428,7 @@ function mergeStreak(remoteStreak){
 function saveStreakLocalOnly(){
  try{localStorage.setItem("frances-streak",JSON.stringify(streakData));}catch(e){}
 }
-function syncPush(){
+async function syncPush(){
  if(syncBusy||!syncUser)return;
  try{
   const c=await ensureClient();if(!c)return;
