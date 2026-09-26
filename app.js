@@ -89,7 +89,7 @@ function saveStreak(){
  }catch(e){
   console.warn("No se pudo guardar la racha:",e);
  }
- if(syncUser) syncPush();
+ if(syncUser) syncNow();
 }
 function getTodayKey(){
  const d=new Date();
@@ -108,7 +108,7 @@ function loadTodayStats(){
 }
 function saveTodayStats(){
  try{localStorage.setItem(TODAY_STATS_KEY,JSON.stringify(todayStats));}catch(e){}
- if(syncUser) syncPush();
+ if(syncUser) syncNow();
 }
 function ensureTodayStats(){if(todayStats.date!==getTodayKey()){todayStats={date:getTodayKey(),practices:0,phraseIds:[],audioSeconds:0};saveTodayStats();}}
 function registerTodayPractice(id){ensureTodayStats();todayStats.practices++;if(!todayStats.phraseIds.some(x=>String(x)===String(id)))todayStats.phraseIds.push(id);saveTodayStats();checkDailyGoal();}
