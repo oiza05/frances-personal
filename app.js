@@ -154,8 +154,10 @@ function checkDailyGoal(){
  const alreadyRegistered=streakData.lastDate===getTodayKey();
  if(!alreadyRegistered)registerStudyDay();
 
- // Si estamos en Inicio, refrescamos inmediatamente el contador visible.
- if(typeof home==="function" && document.getElementById("navHome")?.classList.contains("active"))home();
+ // Solo refrescamos Inicio si realmente estamos fuera de una sesión.
+ // Durante una sesión, reconstruir #main interrumpe la experiencia y puede
+ // hacer que la pantalla salte al menú y vuelva.
+ if(!sessionType && typeof home==="function" && document.getElementById("navHome")?.classList.contains("active"))home();
  return true;
 }
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
@@ -527,12 +529,12 @@ async function syncNow(){
    if(error)throw error;
    await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
    checkDailyGoal();
-   renderCurrent();
+   if(!sessionType)renderCurrent();
    syncMsg("☁️ Estadísticas y biblioteca sincronizadas.");
    return;
   }
   checkDailyGoal();
-  renderCurrent();
+  if(!sessionType)renderCurrent();
   syncMsg(remoteLibraryIsNewer?"☁️ Datos descargados desde la nube.":"☁️ Todo está sincronizado.");
  }catch(e){syncMsg("Error de sincronización: "+(e.message||e))}
  finally{syncBusy=false}
