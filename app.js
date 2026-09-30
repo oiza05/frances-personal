@@ -154,10 +154,9 @@ function checkDailyGoal(){
  const alreadyRegistered=streakData.lastDate===getTodayKey();
  if(!alreadyRegistered)registerStudyDay();
 
- // Solo refrescamos Inicio si realmente estamos fuera de una sesión.
- // Durante una sesión, reconstruir #main interrumpe la experiencia y puede
- // hacer que la pantalla salte al menú y vuelva.
- // No navegamos automáticamente al terminar una meta: las subpáginas también marcan navHome como activo.\n // La racha se actualiza sin sacar al usuario de A1/P1.\n
+ // No navegamos automáticamente al terminar una meta: las subpáginas también marcan navHome como activo.
+ // La racha se actualiza sin sacar al usuario de A1/P1.
+
  return true;
 }
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
