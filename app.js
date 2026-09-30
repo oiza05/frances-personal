@@ -157,7 +157,7 @@ function checkDailyGoal(){
  // Solo refrescamos Inicio si realmente estamos fuera de una sesión.
  // Durante una sesión, reconstruir #main interrumpe la experiencia y puede
  // hacer que la pantalla salte al menú y vuelva.
- if(!sessionType && typeof home==="function" && document.getElementById("navHome")?.classList.contains("active"))home();
+ // No navegamos automáticamente al terminar una meta: las subpáginas también marcan navHome como activo.\n // La racha se actualiza sin sacar al usuario de A1/P1.\n
  return true;
 }
 function formatTodayAudio(){const m=Math.floor(todayStats.audioSeconds/60),h=Math.floor(m/60),min=m%60;return h?(min?h+" h "+min+" min":h+" h"):(min+" min");}
