@@ -1298,6 +1298,9 @@ document.addEventListener('click',event=>{
  if(phrase)speak(phrase.fr);
 });
 function renderCurrent(){
+ // El reproductor de "Escuchar toda la parte" mantiene su propia UI y
+ // su secuencia de audio. No reconstruir #main mientras está reproduciendo.
+ if(partAudioPlaying)return;
  if(sessionType&&sessionIds.length){renderSession();return}
  if(currentLevel){openLevel(currentLevel);return}
  if(document.getElementById("navLibrary").classList.contains("active")){renderLibrary();return}
