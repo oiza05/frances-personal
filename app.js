@@ -573,12 +573,15 @@ async function syncNow(){
    if(error)throw error;
    await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
    checkDailyGoal();
-   if(!sessionType)renderCurrent();
+   // No reconstruir la pantalla mientras el usuario está dentro de un nivel/parte.
+   // La sincronización automática ocurre también al terminar cada audio.
+   if(!sessionType && currentLevel===null)renderCurrent();
    syncMsg("☁️ Estadísticas y biblioteca sincronizadas.");
    return;
   }
   checkDailyGoal();
-  if(!sessionType)renderCurrent();
+  // Mantener la vista actual durante la sincronización automática de audio.
+  if(!sessionType && currentLevel===null)renderCurrent();
   syncMsg(remoteLibraryIsNewer?"☁️ Datos descargados desde la nube.":"☁️ Todo está sincronizado.");
  }catch(e){syncMsg("Error de sincronización: "+(e.message||e))}
  finally{syncBusy=false}
