@@ -810,67 +810,89 @@ function switchLanguage(language){
 function homeChinese(){
  setNav("home");
  const counts=Object.fromEntries(chineseLevels.map(l=>[l,chineseData.filter(x=>x.level===l).length]));
- document.getElementById("main").innerHTML=
-  '<section><div class="section-head"><div><h2>🇨🇳 Aprender chino</h2><div class="muted">Ruta HSK 1 → HSK 6 · 汉字 + Pinyin + español + audio</div></div><button class="btn" onclick="chineseLibrary()">📚 Biblioteca</button></div>'+
-  '<div class="level-grid">'+chineseLevels.map(l=>{
-    const c=counts[l];
-    return '<button class="level-card" onclick="openChineseLevel(\''+l+'\')"><div class="level-name">'+l+'</div><div class="level-count">'+c+' '+(c===1?"entrada":"entradas")+'</div><div class="muted small" style="margin-top:12px">Entrar al nivel →</div></button>';
-  }).join("")+'</div>'+
-  '<div class="chinese-hero" style="margin-top:16px"><h2>拼音 + 汉字</h2><div class="muted">Cada palabra se aprende en sus tres formas: carácter chino, Pinyin con letras latinas y significado en español.</div><div class="tone-grid"><div class="tone-card"><b>mā</b><span>1.º tono</span></div><div class="tone-card"><b>má</b><span>2.º tono</span></div><div class="tone-card"><b>mǎ</b><span>3.º tono</span></div><div class="tone-card"><b>mà</b><span>4.º tono</span></div><div class="tone-card"><b>ma</b><span>neutro</span></div></div></div></section>';
+ const total=chineseData.length;
+ document.getElementById("main").innerHTML=`<section>
+ <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px">
+  <div class="card"><div style="font-size:28px;font-weight:800">🔥 ${streakData.current}</div><div><b>días de racha</b></div><div class="muted small" style="margin-top:4px">Récord: ${streakData.best} días</div></div>
+  <div class="card"><div><b>🎯 Meta de hoy</b></div><div style="margin-top:10px">🔁 ${todayStats.practices}/150 repes</div><div style="margin-top:5px">🎧 ${formatTodayAudio()} / 5 min de audio</div></div>
+ </div>
+ <div class="card" style="margin-bottom:16px"><div class="section-head" style="margin-bottom:10px"><div><b>🎯 Repasar hoy</b><div class="muted small">Practica las frases que más necesitan atención.</div></div></div><div class="actions"><button class="btn primary" onclick="startChineseReviewToday('translation')">✍️ Traducción</button><button class="btn" onclick="startChineseReviewToday('pronunciation')">🎧 Pronunciación</button></div></div>
+ <div class="section-head"><div><h2>Elige tu nivel</h2><div class="muted">Empieza por HSK1 y avanza hasta HSK6.</div></div><button class="btn" onclick="chineseLibrary()">📚 Gestionar frases</button></div>
+ <div class="level-grid">${chineseLevels.map(l=>{const n=counts[l],pct=total?Math.min(100,n/Math.max(...Object.values(counts),1)*100):0;return `<button class="level-card" onclick="openChineseLevel('${l}')"><div class="level-name">${l}</div><div class="level-count">${n} ${n===1?"frase":"frases"}</div><div class="level-progress"><span style="width:${pct}%"></span></div><div class="muted small" style="margin-top:12px">Entrar al nivel →</div></button>`;}).join("")}</div>
+ </section>`;
 }
+
 function openChineseLevel(level){
- currentChineseLevel=level;
- currentChinesePart=null;
- setNav("home");
- const arr=chineseData.filter(x=>x.level===level);
- const parts=[1,2,3,4];
- document.getElementById("main").innerHTML=
-  '<section><button class="btn smallbtn" onclick="homeChinese()">← HSK</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+'</h2><div class="muted">'+arr.length+' entradas · 4 partes</div></div><button class="btn" onclick="chineseLibrary(\''+level+'\')">📚 Ver todas</button></div>'+
-  '<div class="sub-library-grid">'+parts.map(part=>{const partArr=arr.filter(x=>Number(x.part)===part);const p=masteryPercent(partArr,"pronunciationStars"),t=masteryPercent(partArr,"translationStars");return '<button class="sub-library-card" onclick="openChinesePart(\''+level+'\','+part+')"><div class="sub-library-name">'+level+' · Parte '+part+'</div><div class="sub-library-count">'+partArr.length+' '+(partArr.length===1?'entrada':'entradas')+'</div><div class="part-mastery"><div class="part-mastery-row"><span>🎧 Pronunciación</span><b>'+ (p===null?'—':p+'%') +'</b></div><div class="part-progress"><span style="width:'+(p||0)+'%"></span></div><div class="part-mastery-row"><span>✍️ Traducción</span><b>'+ (t===null?'—':t+'%') +'</b></div><div class="part-progress"><span style="width:'+(t||0)+'%"></span></div></div><div class="muted small" style="margin-top:10px">Abrir parte →</div></button>';}).join('')+'</div></section>';
+ currentChineseLevel=level;currentChinesePart=null;setNav("home");
+ const arr=chineseData.filter(x=>x.level===level),avgP=arr.length?(arr.reduce((a,x)=>a+(Number(x.pronunciationStars)||1),0)/arr.length).toFixed(1):"—",avgT=arr.length?(arr.reduce((a,x)=>a+(Number(x.translationStars)||1),0)/arr.length).toFixed(1):"—";
+ document.getElementById("main").innerHTML=`<section>
+ <div class="section-head"><div><button class="btn smallbtn" onclick="homeChinese()">← Niveles</button><h2 style="margin-top:10px">${level}</h2><div class="muted">${arr.length} ${arr.length===1?"frase":"frases"} en este nivel</div></div></div>
+ <div class="mastery-overview"><div class="mastery-card"><div class="mastery-head"><span>🎧 Dominio de pronunciación</span><b>${masteryLabel(arr,"pronunciationStars")}</b></div><div class="mastery-bar"><span style="width:${masteryPercent(arr,"pronunciationStars")||0}%"></span></div><div class="muted small">Basado en la media de estrellas · 5 ⭐ = 100%</div></div><div class="mastery-card"><div class="mastery-head"><span>✍️ Dominio de traducción</span><b>${masteryLabel(arr,"translationStars")}</b></div><div class="mastery-bar"><span style="width:${masteryPercent(arr,"translationStars")||0}%"></span></div><div class="muted small">Basado en la media de estrellas · 5 ⭐ = 100%</div></div></div>
+ <div class="stats-grid"><div class="stat"><div class="muted small">Pronunciación media</div><b>⭐ ${avgP}</b></div><div class="stat"><div class="muted small">Traducción media</div><b>⭐ ${avgT}</b></div><div class="stat"><div class="muted small">Necesitan pronunciación</div><b>${arr.filter(x=>(Number(x.pronunciationStars)||1)<=2).length}</b></div><div class="stat"><div class="muted small">Necesitan traducción</div><b>${arr.filter(x=>(Number(x.translationStars)||1)<=2).length}</b></div></div>
+ <div class="sub-library-grid">${[1,2,3,4].map(part=>{const a=arr.filter(x=>Number(x.part)===part),p=masteryPercent(a,"pronunciationStars"),t=masteryPercent(a,"translationStars");return `<button class="sub-library-card" onclick="openChinesePart('${level}',${part})"><div class="sub-library-name">${level} · Parte ${part}</div><div class="sub-library-count">${a.length} ${a.length===1?"frase":"frases"}</div><div class="part-mastery"><div class="part-mastery-row"><span>🎧 Pronunciación</span><b>${p===null?"—":p+"%"}</b></div><div class="part-progress"><span style="width:${p||0}%"></span></div><div class="part-mastery-row"><span>✍️ Traducción</span><b>${t===null?"—":t+"%"}</b></div><div class="part-progress"><span style="width:${t||0}%"></span></div></div><div class="muted small" style="margin-top:10px">Abrir biblioteca →</div></button>`;}).join("")}</div>
+ <div class="level-actions"><button class="btn" onclick="chineseLibrary('${level}')">📖 Ver todas las frases</button></div><div id="levelContent"></div>
+ </section>`;
 }
+
 function startChineseSession(level,type,part){
  const pool=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
  if(!pool.length){alert("Todavía no hay frases en esta parte.");return}
- currentChineseLevel=level;currentChinesePart=Number(part);
- sessionType=type;sessionIds=pool.sort((a,b)=>{
-  const ra=type==="translation"?Number(a.translationStars)||1:Number(a.pronunciationStars)||1;
-  const rb=type==="translation"?Number(b.translationStars)||1:Number(b.pronunciationStars)||1;
-  return ra-rb||Math.random()-.5;
- }).map(x=>x.id);
+ currentChineseLevel=level;currentChinesePart=Number(part);sessionType=type;
+ sessionIds=[...pool].sort((a,b)=>{const ra=type==="translation"?(Number(a.translationStars)||1):(Number(a.pronunciationStars)||1),rb=type==="translation"?(Number(b.translationStars)||1):(Number(b.pronunciationStars)||1);return ra-rb||Math.random()-.5}).map(x=>x.id);
  renderChineseSession();
 }
+function startChineseReviewToday(type){
+ const pool=[...chineseData].sort((a,b)=>{const sa=type==="translation"?(Number(a.translationStars)||1):(Number(a.pronunciationStars)||1),sb=type==="translation"?(Number(b.translationStars)||1):(Number(b.pronunciationStars)||1);return sa-sb||Math.random()-.5}).slice(0,50);
+ if(!pool.length){alert("Todavía no hay frases para repasar.");return}
+ currentChineseLevel=null;currentChinesePart=null;sessionType=type;sessionIds=pool.map(x=>x.id);renderChineseSession();
+}
 function renderChineseSession(){
- setNav("home");
- const pool=sessionIds.map(id=>chineseData.find(x=>String(x.id)===String(id))).filter(Boolean);
- if(!pool.length){openChinesePart(currentChineseLevel,currentChinesePart);return}
- const x=pool[0];
- const remaining=pool.length;
- const isTranslation=sessionType==="translation";
- document.getElementById("main").innerHTML='<section><div class="section-head"><div><button class="btn smallbtn" onclick="openChinesePart(\''+currentChineseLevel+'\','+currentChinesePart+'\')">← '+currentChineseLevel+' · Parte '+currentChinesePart+'</button><h2 style="margin-top:10px">'+(isTranslation?'✍️ Practicar traducción':'🎧 Practicar pronunciación')+'</h2><div class="muted">'+remaining+' frases restantes</div></div></div>'+
- '<div class="card"><div class="muted small">'+x.level+' · Parte '+x.part+'</div><div class="hanzi" style="font-size:48px;margin-top:12px">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div>'+
- (isTranslation?'<div class="muted" style="margin-top:14px">¿Qué significa?</div><button class="btn" style="margin-top:10px" onclick="this.previousElementSibling.textContent='+JSON.stringify(x.es)+'">👁️ Mostrar traducción</button>':'<button class="btn primary" style="margin-top:14px" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar pronunciación</button><div class="muted" style="margin-top:10px">Repite la frase en voz alta y evalúa tu pronunciación.</div>')+
- '<div class="actions" style="margin-top:18px"><button class="btn" onclick="rateChinese('+JSON.stringify(x.id)+',Math.max(1,Number(prompt("¿Qué tal? 1-5 estrellas:",String(isTranslation?x.translationStars:x.pronunciationStars)))||1),'+JSON.stringify(isTranslation?'translation':'pronunciation')+')">⭐ Puntuar</button><button class="btn primary" onclick="finishChineseSession()">Siguiente →</button></div></div></section>';
+ const arr=sessionIds.map(id=>chineseData.find(x=>String(x.id)===String(id))).filter(Boolean);
+ if(!arr.length){openChinesePart(currentChineseLevel,currentChinesePart);return}
+ const typeLabel=sessionType==="translation"?"✍️ Traducción":"🎧 Escucha y repite";
+ const intro=sessionType==="translation"?"Todas las frases de esta sesión están en la misma pantalla. Escribe las traducciones y compruébalas individualmente.":"Todas las frases de esta sesión están en la misma pantalla. Escucha cada frase y valórate individualmente.";
+ document.getElementById("main").innerHTML=`<div class="sessionbar session-all-header"><button class="btn smallbtn" onclick="currentChineseLevel ? openChinesePart(currentChineseLevel,currentChinesePart) : homeChinese()">← Salir</button><div style="flex:1;text-align:center"><b>${typeLabel}</b><div class="muted small">${currentChineseLevel?`${currentChineseLevel} · Parte ${currentChinesePart}`:"Repaso general"} · ${arr.length} frases · v1.8</div></div></div>
+ <div class="card study-intro"><div class="muted small">${intro}</div><div id="speechStatus" class="muted small" style="margin-top:6px">🔊 Audio listo</div></div>
+ <section class="all-study-list">${arr.map((x,i)=>chineseSessionPhraseCard(x,i+1)).join("")}</section>
+ <div class="actions all-study-footer"><button class="btn primary" onclick="finishChineseSession()">✓ Terminar sesión</button></div>`;
+}
+function chineseSessionPhraseCard(x,num){
+ if(sessionType==="translation")return `<article class="card study-item" id="study-zh-${x.id}"><div class="study-item-head"><span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span><span class="muted small">${x.tags.join(" · ")}</span></div><div class="all-translation-row"><div class="all-translation-prompt"><b>${escapeHtml(x.es)}</b></div><div class="all-translation-rating"><span class="muted tiny">✍️ Dominio</span>${chineseStars(x.translationStars,x.id,"translation")}</div></div><input class="answer" id="zh-answer-${x.id}" placeholder="Escribe el chino..." autocomplete="off" onkeydown="if(event.key==='Enter')checkChineseAllAnswer(${JSON.stringify(x.id)})"><div class="actions"><button class="btn primary" onclick="checkChineseAllAnswer(${JSON.stringify(x.id)})">Comprobar</button><button class="btn" onclick="speakChinese(${JSON.stringify(x.hanzi)})">🔊 Escuchar</button></div><div id="zh-feedback-${x.id}"></div></article>`;
+ return `<article class="card study-item" id="study-zh-${x.id}"><div class="study-item-head"><span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span><span class="muted small">${x.tags.join(" · ")}</span></div><div class="listen-row"><div class="listen-text"><div class="listen-fr hanzi">${escapeHtml(x.hanzi)}</div><div class="pinyin">${escapeHtml(x.pinyin)}</div><div id="zh-spanish-${x.id}" class="listen-es hidden">${escapeHtml(x.es)}</div></div><div class="listen-actions"><button class="btn primary" onclick="speakChinese(${JSON.stringify(x.hanzi)})">🔊 Escuchar</button><button class="btn" onclick="toggleChineseSpanishById(${JSON.stringify(x.id)})">🇪🇸 Español</button></div></div><div class="all-pron-rating"><span class="muted tiny">🎧 ¿Cómo te ha salido?</span>${chineseStars(x.pronunciationStars,x.id,"pronunciation")}</div></article>`;
+}
+function toggleChineseSpanishById(id){document.getElementById("zh-spanish-"+id)?.classList.toggle("hidden");}
+function checkChineseAllAnswer(id){
+ const x=chineseData.find(a=>String(a.id)===String(id)),input=document.getElementById("zh-answer-"+id),fb=document.getElementById("zh-feedback-"+id);if(!x||!input||!fb)return;
+ const raw=cleanSpeechText(input.value);if(!raw){fb.innerHTML='<div class="feedback wrong-feedback"><b>⚠️ Falta tu respuesta.</b><br><span class="muted">Escribe la frase en chino y vuelve a pulsar Comprobar.</span></div>';input.focus();return}
+ const exact=raw===cleanSpeechText(x.hanzi);const errors=exact?0:Math.max(1,translationErrorCount(x.hanzi,raw));const starsByMistakes=Math.max(1,5-errors);x.translationStars=starsByMistakes;save();
+ const rating=document.querySelector("#study-zh-"+CSS.escape(String(id))+" .all-translation-rating .stars");if(rating)rating.outerHTML=chineseStars(x.translationStars,x.id,"translation");
+ registerChinesePhrasePractice(x);
+ if(exact){fb.innerHTML='<div class="feedback correct-feedback"><b>✅ ¡Correcto!</b><br><span class="muted">Tu respuesta coincide con la frase esperada. Dominio: '+starsByMistakes+' ⭐</span></div>';input.disabled=true}else{fb.innerHTML='<div class="feedback wrong-feedback"><b>❌ Hay una diferencia.</b><div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div><div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br><b class="expected-answer">'+escapeHtml(x.hanzi)+'</b><div class="pinyin">'+escapeHtml(x.pinyin)+'</div></div><div style="margin-top:10px"><span class="muted">Errores detectados: '+errors+' · Dominio actual: '+starsByMistakes+' ⭐</span></div></div>';input.focus()}
 }
 function finishChineseSession(){
- sessionIds=sessionIds.slice(1);
- if(sessionIds.length){renderChineseSession();return}
- alert("¡Parte terminada!");
+ const goalCompleted=checkDailyGoal();
+ if(currentChineseLevel===null||goalCompleted){goHome();return}
  openChinesePart(currentChineseLevel,currentChinesePart);
 }
+
 function openChinesePart(level,part){
- currentChineseLevel=level;
- currentChinesePart=Number(part);
- setNav("home");
- const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
- const avgP=arr.length?(arr.reduce((a,x)=>a+(Number(x.pronunciationStars)||1),0)/arr.length).toFixed(1):"—";
- const avgT=arr.length?(arr.reduce((a,x)=>a+(Number(x.translationStars)||1),0)/arr.length).toFixed(1):"—";
- document.getElementById("main").innerHTML=
-  '<section><div class="section-head"><div><button class="btn smallbtn" onclick="openChineseLevel(\''+level+'\')">← '+level+'</button><h2 style="margin-top:10px">'+level+' · Parte '+part+'</h2><div class="muted">'+arr.length+' '+(arr.length===1?'entrada':'entradas')+' en esta parte</div></div></div>'+
-  '<div class="mastery-overview"><div class="mastery-card"><div class="mastery-head"><span>🎧 Dominio de pronunciación</span><b>'+masteryLabel(arr,"pronunciationStars")+'</b></div><div class="mastery-bar"><span style="width:'+(masteryPercent(arr,"pronunciationStars")||0)+'%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div><div class="mastery-card"><div class="mastery-head"><span>✍️ Dominio de traducción</span><b>'+masteryLabel(arr,"translationStars")+'</b></div><div class="mastery-bar"><span style="width:'+(masteryPercent(arr,"translationStars")||0)+'%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div></div>'+
-  '<div class="stats-grid"><div class="stat"><div class="muted small">Pronunciación media</div><b>⭐ '+avgP+'</b></div><div class="stat"><div class="muted small">Traducción media</div><b>⭐ '+avgT+'</b></div><div class="stat"><div class="muted small">Necesitan pronunciación</div><b>'+arr.filter(x=>(Number(x.pronunciationStars)||1)<=2).length+'</b></div><div class="stat"><div class="muted small">Necesitan traducción</div><b>'+arr.filter(x=>(Number(x.translationStars)||1)<=2).length+'</b></div></div>'+
-  '<div class="level-actions"><button class="btn primary" onclick="startChineseSession(\''+level+'\',\'translation\','+part+')">✍️ Practicar traducción</button><button class="btn" onclick="startChineseSession(\''+level+'\',\'pronunciation\','+part+')">🎧 Practicar pronunciación</button><button class="btn" onclick="chineseLibrary(\''+level+'\','+part+')">📖 Ver frases</button></div>'+
-  '<div class="card" style="margin-top:16px"><div class="section-head" style="margin-bottom:10px"><div><b>🎧 Escuchar toda la parte</b><div class="muted small">Escucha todas las frases en chino automáticamente, sin tener que tocar la pantalla.</div></div></div><div class="actions"><button class="btn primary" onclick="playChinesePartAudio(\''+level+'\','+part+')">▶️ Escuchar toda la parte</button><button class="btn" onclick="stopPartAudio()">⏹️ Parar</button></div><div id="speechStatus" class="muted small" style="margin-top:10px">🔊 Audio listo</div></div><div id="levelContent"></div></section>';
+ currentChineseLevel=level;currentChinesePart=Number(part);setNav("home");
+ const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part)),avgP=arr.length?(arr.reduce((a,x)=>a+(Number(x.pronunciationStars)||1),0)/arr.length).toFixed(1):"—",avgT=arr.length?(arr.reduce((a,x)=>a+(Number(x.translationStars)||1),0)/arr.length).toFixed(1):"—";
+ const tags=[...new Set(arr.flatMap(x=>x.tags))].sort();
+ document.getElementById("main").innerHTML=`<section>
+ <div class="section-head"><div><button class="btn smallbtn" onclick="openChineseLevel('${level}')">← ${level}</button><h2 style="margin-top:10px">${level} · Parte ${part}</h2><div class="muted">${arr.length} ${arr.length===1?"frase":"frases"} en esta biblioteca</div></div></div>
+ <div class="mastery-overview"><div class="mastery-card"><div class="mastery-head"><span>🎧 Dominio de pronunciación</span><b>${masteryLabel(arr,"pronunciationStars")}</b></div><div class="mastery-bar"><span style="width:${masteryPercent(arr,"pronunciationStars")||0}%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div><div class="mastery-card"><div class="mastery-head"><span>✍️ Dominio de traducción</span><b>${masteryLabel(arr,"translationStars")}</b></div><div class="mastery-bar"><span style="width:${masteryPercent(arr,"translationStars")||0}%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div></div>
+ <div class="stats-grid"><div class="stat"><div class="muted small">Pronunciación media</div><b>⭐ ${avgP}</b></div><div class="stat"><div class="muted small">Traducción media</div><b>⭐ ${avgT}</b></div><div class="stat"><div class="muted small">Necesitan pronunciación</div><b>${arr.filter(x=>(Number(x.pronunciationStars)||1)<=2).length}</b></div><div class="stat"><div class="muted small">Necesitan traducción</div><b>${arr.filter(x=>(Number(x.translationStars)||1)<=2).length}</b></div></div>
+ <div class="level-actions"><button class="btn primary" onclick="startChineseSession('${level}','translation',${part})">✍️ Practicar traducción</button><button class="btn" onclick="startChineseSession('${level}','pronunciation',${part})">🎧 Practicar pronunciación</button><button class="btn" onclick="showChinesePartPhrases('${level}','Todas',${part})">📖 Ver frases</button></div>
+ <div class="card" style="margin-top:16px"><div class="section-head" style="margin-bottom:10px"><div><b>🎧 Escuchar toda la parte</b><div class="muted small">Escucha todas las frases en chino automáticamente, sin tener que tocar la pantalla.</div></div></div><div class="actions"><button class="btn primary" onclick="playChinesePartAudio('${level}',${part})">▶️ Escuchar toda la parte</button><button class="btn" onclick="stopPartAudio()">⏹️ Parar</button></div><div id="speechStatus" class="muted small" style="margin-top:10px">🔊 Audio listo</div></div>
+ <div id="levelContent"></div></section>`;
+ if(tags.length||arr.length)showChinesePartPhrases(level,"Todas",part);
 }
+function showChinesePartPhrases(level,tag="Todas",part=null){
+ const arr=chineseData.filter(x=>x.level===level&&(part===null||Number(x.part)===Number(part))&&(tag==="Todas"||x.tags.includes(tag))),tags=[...new Set(arr.flatMap(x=>x.tags))].sort(),el=document.getElementById("levelContent");if(!el)return;
+ el.innerHTML=`<div class="chips"><button class="chip ${tag==="Todas"?"active":""}" onclick="showChinesePartPhrases('${level}','Todas',${part===null?"null":part})">Todas</button>${tags.map(t=>`<button class="chip ${tag===t?"active":""}" onclick="showChinesePartPhrases('${level}',${JSON.stringify(t)},${part===null?"null":part})">${escapeHtml(t)}</button>`).join("")}</div><div class="phrase-list">${arr.map(chinesePhraseRow).join("")||'<div class="empty">No hay frases con este filtro.</div>'}</div>`;
+}
+
 function playChinesePartAudio(level,part){
  const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
  if(!arr.length){alert("Todavía no hay frases en esta parte.");return}
@@ -989,11 +1011,11 @@ function speakChinese(text){
  try{synth.speak(u);setTimeout(()=>{try{synth.resume()}catch(e){}},100)}catch(e){}
 }
 function statisticsChinese(){
- setNav('statistics');
- const total=chineseData.length,practiced=chineseData.filter(x=>(Number(x.practiceCount)||0)>0).length;
- const p=masteryPercent(chineseData,'pronunciationStars')??0,t=masteryPercent(chineseData,'translationStars')??0,overall=Math.round((p+t)/2);
- document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📊 Progreso de chino</h2><div class="muted">Tu progreso con hanzi, pinyin y pronunciación.</div></div></div><div class="stats-grid"><div class="stat"><div class="muted small">Entradas</div><b>'+total+'</b></div><div class="stat"><div class="muted small">Practicadas</div><b>'+practiced+'</b></div><div class="stat"><div class="muted small">Pronunciación</div><b>'+p+'%</b></div><div class="stat"><div class="muted small">Traducción</div><b>'+t+'%</b></div></div><div class="card"><div class="section-head"><b>🎯 Dominio general</b><b style="font-size:24px">'+overall+'%</b></div><div class="level-progress"><span style="width:'+overall+'%"></span></div></div></section>';
+ setNav("statistics");
+ const total=chineseData.length,mastered=chineseData.filter(x=>(Number(x.translationStars)||1)>=4&&(Number(x.pronunciationStars)||1)>=4).length,practiced=chineseData.filter(x=>(Number(x.practiceCount)||0)>0).length,translationPct=masteryPercent(chineseData,"translationStars")??0,pronunciationPct=masteryPercent(chineseData,"pronunciationStars")??0,overall=total?Math.round((translationPct+pronunciationPct)/2):0;
+ document.getElementById("main").innerHTML=`<section><div class="section-head"><div><h2>📊 Estadísticas</h2><div class="muted">Tu progreso general en chino.</div></div></div><div class="level-grid"><div class="card"><div class="muted small">Frases</div><div style="font-size:28px;font-weight:800">${total}</div><div class="muted small">en tu biblioteca</div></div><div class="card"><div class="muted small">Dominadas</div><div style="font-size:28px;font-weight:800">${mastered}</div><div class="muted small">4⭐ o más en ambas áreas</div></div><div class="card"><div class="muted small">Practicadas</div><div style="font-size:28px;font-weight:800">${practiced}</div><div class="muted small">al menos una vez</div></div><div class="card"><div class="muted small">Caracteres aprendidos</div><div style="font-size:28px;font-weight:800">${new Set(chineseData.filter(x=>(Number(x.translationStars)||1)>=4&&(Number(x.pronunciationStars)||1)>=4).flatMap(x=>Array.from(x.hanzi))).size}</div><div class="muted small">caracteres de frases dominadas</div></div><div class="card"><div class="muted small">🎧 Audio escuchado</div><div style="font-size:28px;font-weight:800">${formatAudioMinutes()}</div><div class="muted small">tiempo total de reproducción</div></div></div><div class="card" style="margin-top:16px"><div class="section-head" style="margin-bottom:12px"><div><b>🎯 Dominio general</b><div class="muted small">Promedio de traducción y pronunciación.</div></div><b style="font-size:24px">${overall}%</b></div><div class="level-progress"><span style="width:${overall}%"></span></div><div class="stats-split" style="margin-top:14px"><div><span class="muted small">✍️ Traducción</span><br><b>${translationPct}%</b></div><div><span class="muted small">🎧 Pronunciación</span><br><b>${pronunciationPct}%</b></div></div></div><div class="card" style="margin-top:16px"><b>📚 Por nivel</b><div style="margin-top:12px">${chineseLevels.map(level=>{const a=chineseData.filter(x=>x.level===level),p=masteryPercent(a,"translationStars"),pp=masteryPercent(a,"pronunciationStars"),pa=(p===null||pp===null)?null:Math.round((p+pp)/2);return `<div style="margin-bottom:14px"><div class="section-head" style="margin-bottom:6px"><span><b>${level}</b> · ${a.length} frases</span><span>${pa===null?"—":pa+"%"}</span></div><div class="level-progress"><span style="width:${pa===null?0:pa}%"></span></div></div>`}).join("")}</div></div><div class="card" style="margin-top:16px"><div class="section-head" style="margin-bottom:12px"><div><h3 style="margin:0">📅 Estadísticas de hoy</h3><div class="muted small">Actividad de hoy</div></div></div><div class="level-grid"><div class="card"><div class="muted small">Prácticas</div><div style="font-size:28px;font-weight:800">${todayStats.practices}</div><div class="muted small">veces practicadas hoy</div></div><div class="card"><div class="muted small">Frases distintas</div><div style="font-size:28px;font-weight:800">${todayStats.phraseIds.length}</div><div class="muted small">frases trabajadas hoy</div></div><div class="card"><div class="muted small">🎧 Audio hoy</div><div style="font-size:28px;font-weight:800">${formatTodayAudio()}</div><div class="muted small">tiempo de audio hoy</div></div></div></div></section>`;
 }
+
 function openLevel(level){
  currentLevel=level; currentPart=null; setNav("home");
  const arr=data.filter(x=>x.level===level);
