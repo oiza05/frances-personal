@@ -828,15 +828,55 @@ function openChineseLevel(level){
   '<section><button class="btn smallbtn" onclick="homeChinese()">← HSK</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+'</h2><div class="muted">'+arr.length+' entradas · 4 partes</div></div><button class="btn" onclick="chineseLibrary(\''+level+'\')">📚 Ver todas</button></div>'+
   '<div class="sub-library-grid">'+parts.map(part=>{const partArr=arr.filter(x=>Number(x.part)===part);const p=masteryPercent(partArr,"pronunciationStars"),t=masteryPercent(partArr,"translationStars");return '<button class="sub-library-card" onclick="openChinesePart(\''+level+'\','+part+')"><div class="sub-library-name">'+level+' · Parte '+part+'</div><div class="sub-library-count">'+partArr.length+' '+(partArr.length===1?'entrada':'entradas')+'</div><div class="part-mastery"><div class="part-mastery-row"><span>🎧 Pronunciación</span><b>'+ (p===null?'—':p+'%') +'</b></div><div class="part-progress"><span style="width:'+(p||0)+'%"></span></div><div class="part-mastery-row"><span>✍️ Traducción</span><b>'+ (t===null?'—':t+'%') +'</b></div><div class="part-progress"><span style="width:'+(t||0)+'%"></span></div></div><div class="muted small" style="margin-top:10px">Abrir parte →</div></button>';}).join('')+'</div></section>';
 }
+function startChineseSession(level,type,part){
+ const pool=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
+ if(!pool.length){alert("Todavía no hay frases en esta parte.");return}
+ currentChineseLevel=level;currentChinesePart=Number(part);
+ sessionType=type;sessionIds=pool.sort((a,b)=>{
+  const ra=type==="translation"?Number(a.translationStars)||1:Number(a.pronunciationStars)||1;
+  const rb=type==="translation"?Number(b.translationStars)||1:Number(b.pronunciationStars)||1;
+  return ra-rb||Math.random()-.5;
+ }).map(x=>x.id);
+ renderChineseSession();
+}
+function renderChineseSession(){
+ setNav("home");
+ const pool=sessionIds.map(id=>chineseData.find(x=>String(x.id)===String(id))).filter(Boolean);
+ if(!pool.length){openChinesePart(currentChineseLevel,currentChinesePart);return}
+ const x=pool[0];
+ const remaining=pool.length;
+ const isTranslation=sessionType==="translation";
+ document.getElementById("main").innerHTML='<section><div class="section-head"><div><button class="btn smallbtn" onclick="openChinesePart(\''+currentChineseLevel+'\','+currentChinesePart+'\')">← '+currentChineseLevel+' · Parte '+currentChinesePart+'</button><h2 style="margin-top:10px">'+(isTranslation?'✍️ Practicar traducción':'🎧 Practicar pronunciación')+'</h2><div class="muted">'+remaining+' frases restantes</div></div></div>'+
+ '<div class="card"><div class="muted small">'+x.level+' · Parte '+x.part+'</div><div class="hanzi" style="font-size:48px;margin-top:12px">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div>'+
+ (isTranslation?'<div class="muted" style="margin-top:14px">¿Qué significa?</div><button class="btn" style="margin-top:10px" onclick="this.previousElementSibling.textContent='+JSON.stringify(x.es)+'">👁️ Mostrar traducción</button>':'<button class="btn primary" style="margin-top:14px" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar pronunciación</button><div class="muted" style="margin-top:10px">Repite la frase en voz alta y evalúa tu pronunciación.</div>')+
+ '<div class="actions" style="margin-top:18px"><button class="btn" onclick="rateChinese('+JSON.stringify(x.id)+',Math.max(1,Number(prompt("¿Qué tal? 1-5 estrellas:",String(isTranslation?x.translationStars:x.pronunciationStars)))||1),'+JSON.stringify(isTranslation?'translation':'pronunciation')+')">⭐ Puntuar</button><button class="btn primary" onclick="finishChineseSession()">Siguiente →</button></div></div></section>';
+}
+function finishChineseSession(){
+ sessionIds=sessionIds.slice(1);
+ if(sessionIds.length){renderChineseSession();return}
+ alert("¡Parte terminada!");
+ openChinesePart(currentChineseLevel,currentChinesePart);
+}
 function openChinesePart(level,part){
  currentChineseLevel=level;
  currentChinesePart=Number(part);
  setNav("home");
  const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
+ const avgP=arr.length?(arr.reduce((a,x)=>a+(Number(x.pronunciationStars)||1),0)/arr.length).toFixed(1):"—";
+ const avgT=arr.length?(arr.reduce((a,x)=>a+(Number(x.translationStars)||1),0)/arr.length).toFixed(1):"—";
  document.getElementById("main").innerHTML=
-  '<section><button class="btn smallbtn" onclick="openChineseLevel(\''+level+'\')">← '+level+'</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+' · Parte '+part+'</h2><div class="muted">'+arr.length+' '+(arr.length===1?'entrada':'entradas')+'</div></div></div>'+
-  '<div class="level-actions"><button class="btn primary" onclick="chineseLibrary(\''+level+'\','+part+')">📖 Ver frases</button></div>'+
-  '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join("")||'<div class="empty">Esta parte todavía no tiene contenido.</div>')+'</div></section>';
+  '<section><div class="section-head"><div><button class="btn smallbtn" onclick="openChineseLevel(\''+level+'\')">← '+level+'</button><h2 style="margin-top:10px">'+level+' · Parte '+part+'</h2><div class="muted">'+arr.length+' '+(arr.length===1?'entrada':'entradas')+' en esta parte</div></div></div>'+
+  '<div class="mastery-overview"><div class="mastery-card"><div class="mastery-head"><span>🎧 Dominio de pronunciación</span><b>'+masteryLabel(arr,"pronunciationStars")+'</b></div><div class="mastery-bar"><span style="width:'+(masteryPercent(arr,"pronunciationStars")||0)+'%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div><div class="mastery-card"><div class="mastery-head"><span>✍️ Dominio de traducción</span><b>'+masteryLabel(arr,"translationStars")+'</b></div><div class="mastery-bar"><span style="width:'+(masteryPercent(arr,"translationStars")||0)+'%"></span></div><div class="muted small">5 ⭐ = 100% de dominio</div></div></div>'+
+  '<div class="stats-grid"><div class="stat"><div class="muted small">Pronunciación media</div><b>⭐ '+avgP+'</b></div><div class="stat"><div class="muted small">Traducción media</div><b>⭐ '+avgT+'</b></div><div class="stat"><div class="muted small">Necesitan pronunciación</div><b>'+arr.filter(x=>(Number(x.pronunciationStars)||1)<=2).length+'</b></div><div class="stat"><div class="muted small">Necesitan traducción</div><b>'+arr.filter(x=>(Number(x.translationStars)||1)<=2).length+'</b></div></div>'+
+  '<div class="level-actions"><button class="btn primary" onclick="startChineseSession(\''+level+'\',\'translation\','+part+')">✍️ Practicar traducción</button><button class="btn" onclick="startChineseSession(\''+level+'\',\'pronunciation\','+part+')">🎧 Practicar pronunciación</button><button class="btn" onclick="chineseLibrary(\''+level+'\','+part+')">📖 Ver frases</button></div>'+
+  '<div class="card" style="margin-top:16px"><div class="section-head" style="margin-bottom:10px"><div><b>🎧 Escuchar toda la parte</b><div class="muted small">Escucha todas las frases en chino automáticamente, sin tener que tocar la pantalla.</div></div></div><div class="actions"><button class="btn primary" onclick="playChinesePartAudio(\''+level+'\','+part+')">▶️ Escuchar toda la parte</button><button class="btn" onclick="stopPartAudio()">⏹️ Parar</button></div><div id="speechStatus" class="muted small" style="margin-top:10px">🔊 Audio listo</div></div><div id="levelContent"></div></section>';
+}
+function playChinesePartAudio(level,part){
+ const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
+ if(!arr.length){alert("Todavía no hay frases en esta parte.");return}
+ partAudioPlaying=true;let i=0;
+ const play=()=>{if(!partAudioPlaying||i>=arr.length){partAudioPlaying=false;return}const x=arr[i++];const u=new SpeechSynthesisUtterance(cleanSpeechText(x.hanzi));u.lang="zh-CN";u.rate=.82;u.onend=play;u.onerror=play;try{speechSynthesis.speak(u)}catch(e){play()}};
+ try{speechSynthesis.cancel()}catch(e){} play();
 }
 function openChineseLesson(type){
  setNav('home');
