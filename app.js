@@ -875,8 +875,15 @@ function checkChineseAllAnswer(id){
  }
  const expectedHanzi=cleanSpeechText(x.hanzi);
  const expectedPinyin=cleanSpeechText(x.pinyin);
- const normalizePinyin=value=>String(value??"").toLocaleLowerCase().normalize("NFC").replace(/[āáǎà]/g,"a").replace(/[ēéěè]/g,"e").replace(/[īíǐì]/g,"i").replace(/[ōóǒò]/g,"o").replace(/[ūúǔù]/g,"u").replace(/[ǖǘǚǜ]/g,"ü").replace(/[1-5]/g,"").replace(/\s+/g," ").trim();
+ const normalizePinyin=value=>String(value??"")
+  .toLocaleLowerCase()
+  .normalize("NFC")
+  .replace(/[’‘]/g,"'")
+  .replace(/[¿?¡!.,;:()[\\]{}"“”]/g," ")
+  .replace(/\s+/g," ")
+  .trim();
  const exactHanzi=raw===expectedHanzi;
+ // En pinyin los tonos forman parte de la respuesta: quitarlos o cambiarlos cuenta como error.
  const exactPinyin=normalizePinyin(raw)===normalizePinyin(expectedPinyin);
  const exact=exactHanzi||exactPinyin;
  const expectedForErrors=exactPinyin&&!exactHanzi?expectedPinyin:expectedHanzi;
@@ -926,12 +933,139 @@ function showChinesePartPhrases(level,tag="Todas",part=null){
  el.innerHTML=`<div class="chips"><button class="chip ${tag==="Todas"?"active":""}" onclick="showChinesePartPhrases('${level}','Todas',${part===null?"null":part})">Todas</button>${tags.map(t=>`<button class="chip ${tag===t?"active":""}" onclick="showChinesePartPhrases('${level}',${JSON.stringify(t)},${part===null?"null":part})">${escapeHtml(t)}</button>`).join("")}</div><div class="phrase-list">${arr.map(chinesePhraseRow).join("")||'<div class="empty">No hay frases con este filtro.</div>'}</div>`;
 }
 
+let chineseVoice=null;
+function getChineseVoice(){
+ if(!('speechSynthesis' in window))return null;
+ const voices=window.speechSynthesis.getVoices()||[];
+ chineseVoice=voices.find(v=>/^zh-CN$/i.test(String(v.lang)))
+   ||voices.find(v=>/^zh(-|$)/i.test(String(v.lang)))
+   ||null;
+ return chineseVoice;
+}
+if('speechSynthesis' in window){
+ getChineseVoice();
+ const previousVoicesChanged=window.speechSynthesis.onvoiceschanged;
+ window.speechSynthesis.onvoiceschanged=()=>{
+  getFrenchVoice();
+  getChineseVoice();
+  if(typeof previousVoicesChanged==="function")previousVoicesChanged();
+ };
+}
+
+function speakChinese(text){
+ if(!('speechSynthesis' in window)){
+  setSpeechStatus('⚠️ Este navegador no admite voz.');
+  alert('Este navegador no admite reproducción de voz.');
+  return;
+ }
+ const phrase=cleanSpeechText(text);
+ if(!phrase)return;
+ const synth=window.speechSynthesis;
+ speechBusy=true;
+ setSpeechStatus('🔊 Preparando audio chino…');
+ try{synth.cancel();}catch(e){}
+ const start=()=>{
+  try{synth.resume();}catch(e){}
+  const u=new SpeechSynthesisUtterance(phrase);
+  u.lang='zh-CN';
+  u.rate=.82;
+  u.pitch=1;
+  const voice=getChineseVoice();
+  if(voice)u.voice=voice;
+  u.onstart=()=>{
+   speechStartedAt=performance.now();
+   setSpeechStatus('🔊 Reproduciendo chino…');
+  };
+  u.onend=()=>{
+   if(speechStartedAt){
+    addAudioSeconds((performance.now()-speechStartedAt)/1000);
+    speechStartedAt=0;
+   }
+   speechBusy=false;
+   setSpeechStatus('✅ Audio terminado');
+  };
+  u.onerror=event=>{
+   if(speechStartedAt){
+    addAudioSeconds((performance.now()-speechStartedAt)/1000);
+    speechStartedAt=0;
+   }
+   speechBusy=false;
+   console.warn('SpeechSynthesis chino:',event?.error||'unknown',phrase);
+   setSpeechStatus('⚠️ No se pudo reproducir el audio chino.');
+  };
+  try{
+   synth.speak(u);
+   setTimeout(()=>{try{synth.resume()}catch(e){}},120);
+  }catch(e){
+   speechBusy=false;
+   console.warn('No se pudo iniciar la voz china:',e);
+   setSpeechStatus('⚠️ No se pudo iniciar el audio chino.');
+  }
+ };
+ setTimeout(start,60);
+}
+
 function playChinesePartAudio(level,part){
+ if(!('speechSynthesis' in window)){
+  alert('Este navegador no admite reproducción de voz.');
+  return;
+ }
  const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
  if(!arr.length){alert("Todavía no hay frases en esta parte.");return}
- partAudioPlaying=true;let i=0;
- const play=()=>{if(!partAudioPlaying||i>=arr.length){partAudioPlaying=false;return}const x=arr[i++];const u=new SpeechSynthesisUtterance(cleanSpeechText(x.hanzi));u.lang="zh-CN";u.rate=.82;u.onend=play;u.onerror=play;try{speechSynthesis.speak(u)}catch(e){play()}};
- try{speechSynthesis.cancel()}catch(e){} play();
+ stopPartAudio();
+ partAudioItems=arr;
+ partAudioIndex=0;
+ partAudioPlaying=true;
+ setSpeechStatus(`🔊 Preparando 1/${partAudioItems.length}…`);
+ playNextChinesePartAudio();
+}
+function playNextChinesePartAudio(){
+ if(!partAudioPlaying)return;
+ if(partAudioIndex>=partAudioItems.length){
+  partAudioPlaying=false;
+  partAudioItems=[];
+  partAudioIndex=0;
+  setSpeechStatus('✅ Parte terminada');
+  return;
+ }
+ const phrase=cleanSpeechText(partAudioItems[partAudioIndex]?.hanzi);
+ if(!phrase){
+  partAudioIndex++;
+  setTimeout(playNextChinesePartAudio,100);
+  return;
+ }
+ const number=partAudioIndex+1;
+ setSpeechStatus(`🔊 Reproduciendo chino ${number}/${partAudioItems.length}…`);
+ const synth=window.speechSynthesis;
+ try{synth.cancel();synth.resume()}catch(e){}
+ const u=new SpeechSynthesisUtterance(phrase);
+ u.lang='zh-CN';
+ u.rate=.82;
+ u.pitch=1;
+ const voice=getChineseVoice();
+ if(voice)u.voice=voice;
+ u.onstart=()=>{speechStartedAt=performance.now();};
+ const advance=()=>{
+  if(speechStartedAt){
+   addAudioSeconds((performance.now()-speechStartedAt)/1000);
+   speechStartedAt=0;
+  }
+  if(!partAudioPlaying)return;
+  partAudioIndex++;
+  partAudioTimer=setTimeout(playNextChinesePartAudio,500);
+ };
+ u.onend=advance;
+ u.onerror=event=>{
+  console.warn('SpeechSynthesis chino:',event?.error||'unknown',phrase);
+  advance();
+ };
+ try{
+  synth.speak(u);
+  setTimeout(()=>{try{synth.resume()}catch(e){}},120);
+ }catch(e){
+  console.warn('No se pudo iniciar la voz china:',e);
+  advance();
+ }
 }
 function openChineseLesson(type){
  setNav('home');
