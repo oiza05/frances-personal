@@ -13,10 +13,19 @@
 <body>
 <header class="topbar">
   <div>
-    <h1>🇫🇷 Francés personal</h1>
-    <div class="muted small">Tu biblioteca y práctica de francés · <b>v1.3</b></div>
+    <h1 id="appTitle">🇫🇷 Francés personal</h1>
+    <div id="appSubtitle" class="muted small">Tu biblioteca y práctica de francés</div>
   </div>
-  <button class="icon-btn" onclick="goHome()" title="Inicio">⌂</button>
+  <div class="topbar-actions">
+    <label class="language-picker">
+      <span class="muted small">Idioma</span>
+      <select id="languageSelect" onchange="switchLanguage(this.value)" aria-label="Seleccionar idioma">
+        <option value="fr">🇫🇷 Francés</option>
+        <option value="zh">🇨🇳 Chino</option>
+      </select>
+    </label>
+    <button class="icon-btn" onclick="goHome()" title="Inicio">⌂</button>
+  </div>
 </header>
 
 <nav class="nav">
