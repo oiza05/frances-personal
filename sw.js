@@ -1,4 +1,4 @@
-const CACHE="frances-personal-v19";
+const CACHE="frances-personal-v20";
 const ASSETS=["./","./index.html","./style.css","./app.js","./manifest.json","./supabase-setup.sql"];
 
 self.addEventListener("install",event=>{
