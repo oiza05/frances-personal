@@ -292,6 +292,21 @@ function masteryLabel(arr,key){
  const pct=masteryPercent(arr,key);
  return pct===null?"—":pct+"%";
 }
+function migrateChinesePhrase(x){
+ return {
+  ...x,
+  id:x.id||"zh-"+Date.now()+Math.random(),
+  es:String(x.es||""),
+  hanzi:String(x.hanzi||""),
+  pinyin:String(x.pinyin||""),
+  level:x.level||"Inicial",
+  tags:Array.isArray(x.tags)?x.tags:[],
+  pronunciationStars:Number(x.pronunciationStars)||1,
+  translationStars:Number(x.translationStars)||1,
+  practiceCount:Number(x.practiceCount)||0,
+  lastPracticed:x.lastPracticed||null
+ };
+}
 function migratePhrase(x){
  return {
   ...x,
@@ -333,8 +348,16 @@ function save(){
  if(saveTimer)clearTimeout(saveTimer);
  localUpdatedAt=Date.now();
  saveTimer=setTimeout(async()=>{
-  try{await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});dbReady=true;setDataStatus(syncUser?"Guardado localmente · pendiente de sincronizar":"Guardado localmente");}
-  catch(e){localStorage.setItem(KEY,JSON.stringify(data));setDataStatus("Copia local de emergencia");}
+  try{
+   await dbSet(DB_DATA_KEY,data);
+   await dbSet("chineseLibrary",chineseData);
+   await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
+   dbReady=true;setDataStatus(syncUser?"Guardado localmente · pendiente de sincronizar":"Guardado localmente");
+  }catch(e){
+   localStorage.setItem(KEY,JSON.stringify(data));
+   localStorage.setItem("frances-chinese-library",JSON.stringify(chineseData));
+   setDataStatus("Copia local de emergencia");
+  }
   if(syncUser) syncPush();
  },80);
 }
@@ -342,14 +365,30 @@ function setDataStatus(text){
  const el=document.getElementById("dataStatus"); if(el)el.textContent=text;
 }
 async function loadData(){
+ let frenchLoaded=false, chineseLoaded=false;
  try{
   const stored=await dbGet(DB_DATA_KEY);
-  if(Array.isArray(stored)){data=stored.map(migratePhrase);const meta=await dbGet(DB_META_KEY);localUpdatedAt=Number(meta?.updatedAt)||Date.now();dbReady=true;setDataStatus("Datos locales listos");return}
+  if(Array.isArray(stored)){data=stored.map(migratePhrase);frenchLoaded=true;}
+  const storedChinese=await dbGet("chineseLibrary");
+  if(Array.isArray(storedChinese)){chineseData=storedChinese.map(migrateChinesePhrase);chineseLoaded=true;}
+  const meta=await dbGet(DB_META_KEY);localUpdatedAt=Number(meta?.updatedAt)||Date.now();
  }catch(e){}
- let legacy=null;
- try{legacy=JSON.parse(localStorage.getItem(KEY)||"null")||JSON.parse(localStorage.getItem("frances-personal-v1")||"null")}catch(e){}
- if(Array.isArray(legacy)&&legacy.length){data=legacy.map(migratePhrase);localUpdatedAt=Date.now();await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});dbReady=true;setDataStatus("Datos migrados a la nueva base local");return}
- data=sample.map(migratePhrase);localUpdatedAt=Date.now();await dbSet(DB_DATA_KEY,data);await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});dbReady=true;setDataStatus("Datos locales listos");
+ if(!frenchLoaded){
+  let legacy=null;
+  try{legacy=JSON.parse(localStorage.getItem(KEY)||"null")||JSON.parse(localStorage.getItem("frances-personal-v1")||"null")}catch(e){}
+  data=Array.isArray(legacy)&&legacy.length?legacy.map(migratePhrase):sample.map(migratePhrase);
+  await dbSet(DB_DATA_KEY,data);
+ }
+ if(!chineseLoaded){
+  try{
+   const legacyChinese=JSON.parse(localStorage.getItem("frances-chinese-library")||"null");
+   chineseData=Array.isArray(legacyChinese)&&legacyChinese.length?legacyChinese.map(migrateChinesePhrase):chineseSample.map(migrateChinesePhrase);
+  }catch(e){chineseData=chineseSample.map(migrateChinesePhrase)}
+  await dbSet("chineseLibrary",chineseData);
+ }
+ localUpdatedAt=localUpdatedAt||Date.now();
+ await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
+ dbReady=true;setDataStatus("Datos locales listos");
 }
 function loadSyncConfig(){
  try{syncConfig=JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)||"null")}catch(e){syncConfig=null}
