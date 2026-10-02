@@ -689,6 +689,7 @@ function getLearnedWords(){
  return words;
 }
 function statistics(){
+ if(currentLanguage==="zh"){statisticsChinese();return;}
  setNav("statistics");
  const total=data.length;
  const mastered=data.filter(x=>(Number(x.translationStars)||1)>=4 && (Number(x.pronunciationStars)||1)>=4).length;
@@ -731,6 +732,7 @@ function statistics(){
   </section>`;
 }
 function home(){
+ if(currentLanguage==="zh"){homeChinese();return;}
  const counts=Object.fromEntries(levels.map(l=>[l,data.filter(x=>x.level===l).length]));
  const total=data.length;
  document.getElementById("main").innerHTML=`
@@ -852,7 +854,10 @@ function rateChinese(id,n,type){
  const x=chineseData.find(a=>String(a.id)===String(id));if(!x)return;
  if(type==='pronunciation')x.pronunciationStars=n;
  if(type==='translation')x.translationStars=n;
- x.practiceCount=(Number(x.practiceCount)||0)+1;x.lastPracticed=new Date().toISOString();save();chineseLibrary();
+ x.practiceCount=(Number(x.practiceCount)||0)+1;
+ x.lastPracticed=new Date().toISOString();
+ save();
+ chineseLibrary(currentChineseLevel||"");
 }
 function speakChinese(text){
  if(!('speechSynthesis' in window)){alert('Este navegador no admite reproducción de voz.');return}
@@ -1190,6 +1195,7 @@ function toggleSpanishById(id){
  document.getElementById(`spanish-${id}`)?.classList.toggle("hidden");
 }
 function library(){
+ if(currentLanguage==="zh"){currentLevel=null;currentPart=null;chineseLibrary();return;}
  currentLevel=null; setNav("library");
  renderLibrary();
 }
