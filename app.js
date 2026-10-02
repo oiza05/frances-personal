@@ -10,7 +10,7 @@ const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
 const SYNC_DEVICE_KEY="frances-personal-sync-device-id";
 const TODAY_EVENTS_KEY="frances-today-events";
-const APP_VERSION="v1.8";
+const APP_VERSION="v1.9";
 const LANGUAGE_KEY="frances-personal-language";
 let currentLanguage=localStorage.getItem(LANGUAGE_KEY)==="zh"?"zh":"fr";
 let syncConfig=null;
@@ -263,7 +263,7 @@ function translationErrorCount(expected, actual){
   .normalize("NFC")
   .replace(/[’‘]/g,"'")
   .replace(/[¿?¡!.,;:()[\\]{}"“”]/g," ")
-  .replace(/\\s+/g," ")
+  .replace(/\s+/g," ")
   .trim()
   .split(" ")
   .filter(Boolean);
@@ -857,12 +857,13 @@ function renderChineseSession(){
  <div class="actions all-study-footer"><button class="btn primary" onclick="finishChineseSession()">✓ Terminar sesión</button></div>`;
 }
 function chineseSessionPhraseCard(x,num){
- if(sessionType==="translation")return `<article class="card study-item" id="study-zh-${x.id}"><div class="study-item-head"><span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span><span class="muted small">${x.tags.join(" · ")}</span></div><div class="all-translation-row"><div class="all-translation-prompt"><b>${escapeHtml(x.es)}</b></div><div class="all-translation-rating"><span class="muted tiny">✍️ Dominio</span>${chineseStars(x.translationStars,x.id,"translation")}</div></div><input class="answer" id="zh-answer-${x.id}" placeholder="Escribe el chino..." autocomplete="off" onkeydown="if(event.key==='Enter')checkChineseAllAnswer(${JSON.stringify(x.id)})"><div class="actions"><button class="btn primary" onclick="checkChineseAllAnswer(${JSON.stringify(x.id)})">Comprobar</button><button class="btn" onclick="speakChinese(${JSON.stringify(x.hanzi)})">🔊 Escuchar</button></div><div id="zh-feedback-${x.id}"></div></article>`;
+ if(sessionType==="translation")return `<article class="card study-item" id="study-zh-${x.id}"><div class="study-item-head"><span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span><span class="muted small">${x.tags.join(" · ")}</span></div><div class="all-translation-row"><div class="all-translation-prompt"><b>${escapeHtml(x.es)}</b></div><div class="all-translation-rating"><span class="muted tiny">✍️ Dominio</span>${chineseStars(x.translationStars,x.id,"translation")}</div></div><input class="answer" id="zh-answer-${x.id}" placeholder="Escribe el chino..." autocomplete="off" onkeydown="if(event.key==='Enter')checkChineseAllAnswer(${JSON.stringify(x.id)})"><div class="actions"><button class="btn primary" data-chinese-check-id="${escapeHtml(String(x.id))}">Comprobar</button><button class="btn" onclick="speakChinese(${JSON.stringify(x.hanzi)})">🔊 Escuchar</button></div><div id="zh-feedback-${x.id}"></div></article>`;
  return `<article class="card study-item" id="study-zh-${x.id}"><div class="study-item-head"><span class="muted small">${num} / ${sessionIds.length} · ${x.level}</span><span class="muted small">${x.tags.join(" · ")}</span></div><div class="listen-row"><div class="listen-text"><div class="listen-fr hanzi">${escapeHtml(x.hanzi)}</div><div class="pinyin">${escapeHtml(x.pinyin)}</div><div id="zh-spanish-${x.id}" class="listen-es hidden">${escapeHtml(x.es)}</div></div><div class="listen-actions"><button class="btn primary" onclick="speakChinese(${JSON.stringify(x.hanzi)})">🔊 Escuchar</button><button class="btn" onclick="toggleChineseSpanishById(${JSON.stringify(x.id)})">🇪🇸 Español</button></div></div><div class="all-pron-rating"><span class="muted tiny">🎧 ¿Cómo te ha salido?</span>${chineseStars(x.pronunciationStars,x.id,"pronunciation")}</div></article>`;
 }
 function toggleChineseSpanishById(id){document.getElementById("zh-spanish-"+id)?.classList.toggle("hidden");}
 function checkChineseAllAnswer(id){
- const x=chineseData.find(a=>String(a.id)===String(id));
+ id=String(id);
+ const x=chineseData.find(a=>String(a.id)===id);
  const input=document.getElementById("zh-answer-"+id);
  const fb=document.getElementById("zh-feedback-"+id);
  if(!x||!input||!fb)return;
@@ -1619,6 +1620,12 @@ function speak(text){
 // Usamos delegación de eventos en lugar de onclick inline. Así el texto
 // de la frase nunca se interpreta como código HTML/JavaScript.
 document.addEventListener('click',event=>{
+ const checkBtn=event.target.closest?.('[data-chinese-check-id]');
+ if(checkBtn){
+  event.preventDefault();
+  checkChineseAllAnswer(checkBtn.getAttribute('data-chinese-check-id'));
+  return;
+ }
  const btn=event.target.closest?.('[data-speak-id]');
  if(!btn)return;
  const id=btn.getAttribute('data-speak-id');
