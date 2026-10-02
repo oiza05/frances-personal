@@ -838,12 +838,73 @@ function chineseLibrary(levelFilter){
  const selectedLevel=levelFilter||"";
 
  const arr=chineseData.filter(x=>(!selectedLevel||x.level===selectedLevel)&&(!q||[x.es,x.hanzi,x.pinyin,...x.tags].join(" ").toLowerCase().includes(q)));
- document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📚 Vocabulario chino</h2><div class="muted">'+chineseData.length+' entradas · Hanzi + Pinyin + español</div></div><button class="btn" onclick="homeChinese()">← Aprender</button></div>' +
+ document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📚 Vocabulario chino</h2><div class="muted">'+chineseData.length+' entradas · Hanzi + Pinyin + español</div></div><div class="actions"><button class="btn" onclick="addChinesePhrase()">➕ Añadir</button><button class="btn" onclick="chineseExportJSON()">⬇️ JSON</button><button class="btn" onclick="chineseImportFile()">⬆️ Importar</button><button class="btn" onclick="homeChinese()">← Aprender</button></div></div>' +
  '<div class="actions" style="margin-bottom:10px">'+chineseLevels.map(l=>'<button class="btn '+(selectedLevel===l?"primary":"")+'" onclick="chineseLibrary(\''+l+'\')">'+l+'</button>').join("")+'</div><div class="searchbar"><input type="search" value="'+escapeHtml(window.chineseQuery||'')+'" placeholder="Buscar español, hanzi o pinyin..." oninput="window.chineseQuery=this.value;chineseLibrary(\''+selectedLevel+'\')"></div>' +
  '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join('')||'<div class="empty">No se encontraron entradas.</div>')+'</div></section>';
 }
 function chinesePhraseRow(x){
- return '<article class="chinese-phrase"><div class="chinese-phrase-main"><div><div class="hanzi">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div><div style="margin-top:4px">'+escapeHtml(x.es)+'</div><div class="tags">'+x.tags.map(t=>'<span class="tag">'+escapeHtml(t)+'</span>').join('')+'</div></div><div class="actions"><button class="btn smallbtn" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar</button></div></div><div class="rating-line"><div class="rating-item"><span class="muted small">🎧 Pronunciación</span>'+chineseStars(x.pronunciationStars,x.id,'pronunciation')+'</div><div class="rating-item"><span class="muted small">✍️ Traducción</span>'+chineseStars(x.translationStars,x.id,'translation')+'</div></div></article>';
+ return '<article class="chinese-phrase"><div class="chinese-phrase-main"><div><div class="hanzi">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div><div style="margin-top:4px">'+escapeHtml(x.es)+'</div><div class="tags">'+x.tags.map(t=>'<span class="tag">'+escapeHtml(t)+'</span>').join('')+'</div></div><div class="actions"><button class="btn smallbtn" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar</button><button class="btn smallbtn" onclick="editChinesePhrase('+JSON.stringify(x.id)+')">Editar</button><button class="btn smallbtn" onclick="deleteChinesePhrase('+JSON.stringify(x.id)+')">Eliminar</button></div></div><div class="rating-line"><div class="rating-item"><span class="muted small">🎧 Pronunciación</span>'+chineseStars(x.pronunciationStars,x.id,'pronunciation')+'</div><div class="rating-item"><span class="muted small">✍️ Traducción</span>'+chineseStars(x.translationStars,x.id,'translation')+'</div></div></article>';
+}
+function addChinesePhrase(){
+ const es=prompt("Español:");if(!es)return;
+ const hanzi=prompt("Hanzi (汉字):");if(!hanzi)return;
+ const pinyin=prompt("Pinyin:");if(!pinyin)return;
+ const level=(prompt("Nivel (HSK1, HSK2, HSK3, HSK4, HSK5 o HSK6):",currentChineseLevel||"HSK1")||"HSK1").toUpperCase();
+ const tags=(prompt("Etiquetas, separadas por comas:","")||"").split(",").map(x=>x.trim()).filter(Boolean);
+ chineseData.push(migrateChinesePhrase({id:"zh-"+Date.now(),es,hanzi,pinyin,level:chineseLevels.includes(level)?level:"HSK1",tags}));
+ save();chineseLibrary(level);
+}
+function editChinesePhrase(id){
+ const x=chineseData.find(a=>String(a.id)===String(id));if(!x)return;
+ const es=prompt("Español:",x.es);if(es===null)return;
+ const hanzi=prompt("Hanzi (汉字):",x.hanzi);if(hanzi===null)return;
+ const pinyin=prompt("Pinyin:",x.pinyin);if(pinyin===null)return;
+ const level=(prompt("Nivel:",x.level)||x.level).toUpperCase();
+ const tags=(prompt("Etiquetas, separadas por comas:",x.tags.join(", "))||"").split(",").map(x=>x.trim()).filter(Boolean);
+ Object.assign(x,{es,hanzi,pinyin,level:chineseLevels.includes(level)?level:x.level,tags});
+ save();chineseLibrary(x.level);
+}
+function deleteChinesePhrase(id){
+ if(!confirm("¿Eliminar esta entrada de chino?"))return;
+ chineseData=chineseData.filter(x=>String(x.id)!==String(id));save();chineseLibrary();
+}
+function chineseExportJSON(){
+ const backup={version:1,app:"frances-personal-chinese",exportedAt:new Date().toISOString(),phrases:chineseData.map(migrateChinesePhrase)};
+ const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="chino-hsk-backup.json";a.click();URL.revokeObjectURL(a.href);
+}
+function chineseImportFile(){
+ const input=document.createElement("input");input.type="file";input.accept=".json,.csv,text/csv,application/json";
+ input.onchange=()=>{const f=input.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>chineseImportData(String(reader.result),f.name);reader.readAsText(f)};
+ input.click();
+}
+function parseChineseCSV(text){
+ const rows=[];let row=[],cell="",quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
+  if(c==='"'&&quoted&&n==='"'){cell+='"';i++;continue}
+  if(c==='"'){quoted=!quoted;continue}
+  if(!quoted&&c===","){row.push(cell);cell="";continue}
+  if(!quoted&&(c==="\n"||c==="\r")){if(c==="\r"&&n==="\n")i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell="";continue}
+  cell+=c;
+ }
+ row.push(cell);if(row.some(v=>v.trim()))rows.push(row);
+ if(rows.length<2)return [];
+ const h=rows[0].map(x=>normalize(x)),idx=(...names)=>h.findIndex(x=>names.includes(x));
+ const ie=idx("espanol","español","es","spanish"),ih=idx("hanzi","chino","chinese","caracteres"),ip=idx("pinyin"),il=idx("nivel","level"),it=idx("etiquetas","tags","colecciones","collections");
+ return rows.slice(1).map(r=>migrateChinesePhrase({id:"zh-"+Date.now()+Math.random(),es:r[ie]||"",hanzi:r[ih]||"",pinyin:r[ip]||"",level:(r[il]||"HSK1").toUpperCase(),tags:(r[it]||"").split(/[|,]/).map(x=>x.trim()).filter(Boolean)}));
+}
+function chineseImportData(text,name){
+ try{
+  let incoming;
+  if(name.toLowerCase().endsWith(".json")){const parsed=JSON.parse(text);incoming=Array.isArray(parsed)?parsed:(Array.isArray(parsed.phrases)?parsed.phrases:null)}
+  else incoming=parseChineseCSV(text);
+  if(!Array.isArray(incoming))throw new Error("Formato no válido");
+  incoming=incoming.map(migrateChinesePhrase).filter(x=>x.es&&x.hanzi&&x.pinyin);
+  if(!incoming.length)throw new Error("No hay entradas válidas");
+  const replace=confirm("Se han encontrado "+incoming.length+" entradas. Aceptar = REEMPLAZAR biblioteca china. Cancelar = AÑADIR a la biblioteca.");
+  chineseData=replace?incoming:[...chineseData,...incoming];
+  save();chineseLibrary();
+ }catch(e){alert("No se pudo importar: "+e.message)}
 }
 function chineseStars(n,id,type){
  let s='<div class="stars">';
