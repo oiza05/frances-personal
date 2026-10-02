@@ -32,21 +32,22 @@ const sample=[
 const levels=["A1","A2","B1","B2","C1","C2"];
 const chineseLevels=["HSK1","HSK2","HSK3","HSK4","HSK5","HSK6"];
 let currentChineseLevel=null;
+let currentChinesePart=null;
 const chineseSample=[
  {id:"zh-1",es:"Hola",hanzi:"你好",pinyin:"nǐ hǎo",level:"HSK1",tags:["Saludos"],pronunciationStars:1,translationStars:1},
- {id:"zh-2",es:"Gracias",hanzi:"谢谢",pinyin:"xièxie",level:"Inicial",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
- {id:"zh-3",es:"De nada",hanzi:"不客气",pinyin:"bú kèqi",level:"Inicial",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
- {id:"zh-4",es:"Adiós",hanzi:"再见",pinyin:"zàijiàn",level:"Inicial",tags:["Saludos"],pronunciationStars:1,translationStars:1},
- {id:"zh-5",es:"¿Cómo estás?",hanzi:"你好吗？",pinyin:"nǐ hǎo ma?",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
- {id:"zh-6",es:"Estoy bien",hanzi:"我很好",pinyin:"wǒ hěn hǎo",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
- {id:"zh-7",es:"Me llamo…",hanzi:"我叫……",pinyin:"wǒ jiào…",level:"Inicial",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
- {id:"zh-8",es:"¿Cómo te llamas?",hanzi:"你叫什么名字？",pinyin:"nǐ jiào shénme míngzi?",level:"Inicial",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
- {id:"zh-9",es:"No entiendo",hanzi:"我不懂",pinyin:"wǒ bù dǒng",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
- {id:"zh-10",es:"Por favor, repítelo",hanzi:"请再说一遍",pinyin:"qǐng zài shuō yí biàn",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
- {id:"zh-11",es:"¿Cuánto cuesta?",hanzi:"多少钱？",pinyin:"duōshao qián?",level:"Inicial",tags:["Compras"],pronunciationStars:1,translationStars:1},
- {id:"zh-12",es:"¿Dónde está el baño?",hanzi:"洗手间在哪里？",pinyin:"xǐshǒujiān zài nǎlǐ?",level:"Inicial",tags:["Viajes"],pronunciationStars:1,translationStars:1},
- {id:"zh-13",es:"No hablo chino",hanzi:"我不会说中文",pinyin:"wǒ bù huì shuō Zhōngwén",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
- {id:"zh-14",es:"Quiero agua",hanzi:"我要水",pinyin:"wǒ yào shuǐ",level:"Inicial",tags:["Supervivencia"],pronunciationStars:1,translationStars:1}
+ {id:"zh-2",es:"Gracias",hanzi:"谢谢",pinyin:"xièxie",level:"HSK1",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
+ {id:"zh-3",es:"De nada",hanzi:"不客气",pinyin:"bú kèqi",level:"HSK1",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
+ {id:"zh-4",es:"Adiós",hanzi:"再见",pinyin:"zàijiàn",level:"HSK1",tags:["Saludos"],pronunciationStars:1,translationStars:1},
+ {id:"zh-5",es:"¿Cómo estás?",hanzi:"你好吗？",pinyin:"nǐ hǎo ma?",level:"HSK1",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-6",es:"Estoy bien",hanzi:"我很好",pinyin:"wǒ hěn hǎo",level:"HSK1",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-7",es:"Me llamo…",hanzi:"我叫……",pinyin:"wǒ jiào…",level:"HSK1",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
+ {id:"zh-8",es:"¿Cómo te llamas?",hanzi:"你叫什么名字？",pinyin:"nǐ jiào shénme míngzi?",level:"HSK1",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
+ {id:"zh-9",es:"No entiendo",hanzi:"我不懂",pinyin:"wǒ bù dǒng",level:"HSK1",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-10",es:"Por favor, repítelo",hanzi:"请再说一遍",pinyin:"qǐng zài shuō yí biàn",level:"HSK1",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-11",es:"¿Cuánto cuesta?",hanzi:"多少钱？",pinyin:"duōshao qián?",level:"HSK1",tags:["Compras"],pronunciationStars:1,translationStars:1},
+ {id:"zh-12",es:"¿Dónde está el baño?",hanzi:"洗手间在哪里？",pinyin:"xǐshǒujiān zài nǎlǐ?",level:"HSK1",tags:["Viajes"],pronunciationStars:1,translationStars:1},
+ {id:"zh-13",es:"No hablo chino",hanzi:"我不会说中文",pinyin:"wǒ bù huì shuō Zhōngwén",level:"HSK1",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-14",es:"Quiero agua",hanzi:"我要水",pinyin:"wǒ yào shuǐ",level:"HSK1",tags:["Supervivencia"],pronunciationStars:1,translationStars:1}
 ];
 let data=sample.map(migratePhrase);
 let chineseData=chineseSample.map(migrateChinesePhrase);
@@ -301,7 +302,8 @@ function migrateChinesePhrase(x){
   es:String(x.es||""),
   hanzi:String(x.hanzi||""),
   pinyin:String(x.pinyin||""),
-  level:x.level||"Inicial",
+  level:chineseLevels.includes(String(x.level||"").toUpperCase())?String(x.level).toUpperCase():"HSK1",
+  part:[1,2,3,4].includes(Number(x.part))?Number(x.part):1,
   tags:Array.isArray(x.tags)?x.tags:[],
   pronunciationStars:Number(x.pronunciationStars)||1,
   translationStars:Number(x.translationStars)||1,
@@ -802,7 +804,7 @@ function updateLanguageUI(){
 function switchLanguage(language){
  currentLanguage=language==='zh'?'zh':'fr';
  localStorage.setItem(LANGUAGE_KEY,currentLanguage);
- currentLevel=null;currentPart=null;sessionType=null;sessionIds=[];
+ currentLevel=null;currentPart=null;currentChineseLevel=null;currentChinesePart=null;sessionType=null;sessionIds=[];
  updateLanguageUI();goHome();
 }
 function homeChinese(){
@@ -818,11 +820,23 @@ function homeChinese(){
 }
 function openChineseLevel(level){
  currentChineseLevel=level;
+ currentChinesePart=null;
  setNav("home");
  const arr=chineseData.filter(x=>x.level===level);
+ const parts=[1,2,3,4];
  document.getElementById("main").innerHTML=
-  '<section><button class="btn smallbtn" onclick="homeChinese()">← HSK</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+'</h2><div class="muted">'+arr.length+' entradas</div></div><button class="btn" onclick="chineseLibrary(\''+level+'\')">📚 Ver todas</button></div>'+
-  '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join("")||'<div class="empty">Este nivel todavía no tiene contenido.</div>')+'</div></section>';
+  '<section><button class="btn smallbtn" onclick="homeChinese()">← HSK</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+'</h2><div class="muted">'+arr.length+' entradas · 4 partes</div></div><button class="btn" onclick="chineseLibrary(\''+level+'\')">📚 Ver todas</button></div>'+
+  '<div class="sub-library-grid">'+parts.map(part=>{const partArr=arr.filter(x=>Number(x.part)===part);const p=masteryPercent(partArr,"pronunciationStars"),t=masteryPercent(partArr,"translationStars");return '<button class="sub-library-card" onclick="openChinesePart(\''+level+'\','+part+')"><div class="sub-library-name">'+level+' · Parte '+part+'</div><div class="sub-library-count">'+partArr.length+' '+(partArr.length===1?'entrada':'entradas')+'</div><div class="part-mastery"><div class="part-mastery-row"><span>🎧 Pronunciación</span><b>'+ (p===null?'—':p+'%') +'</b></div><div class="part-progress"><span style="width:'+(p||0)+'%"></span></div><div class="part-mastery-row"><span>✍️ Traducción</span><b>'+ (t===null?'—':t+'%') +'</b></div><div class="part-progress"><span style="width:'+(t||0)+'%"></span></div></div><div class="muted small" style="margin-top:10px">Abrir parte →</div></button>';}).join('')+'</div></section>';
+}
+function openChinesePart(level,part){
+ currentChineseLevel=level;
+ currentChinesePart=Number(part);
+ setNav("home");
+ const arr=chineseData.filter(x=>x.level===level&&Number(x.part)===Number(part));
+ document.getElementById("main").innerHTML=
+  '<section><button class="btn smallbtn" onclick="openChineseLevel(\''+level+'\')">← '+level+'</button><div class="section-head" style="margin-top:12px"><div><h2>'+level+' · Parte '+part+'</h2><div class="muted">'+arr.length+' '+(arr.length===1?'entrada':'entradas')+'</div></div></div>'+
+  '<div class="level-actions"><button class="btn primary" onclick="chineseLibrary(\''+level+'\','+part+')">📖 Ver frases</button></div>'+
+  '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join("")||'<div class="empty">Esta parte todavía no tiene contenido.</div>')+'</div></section>';
 }
 function openChineseLesson(type){
  setNav('home');
@@ -832,26 +846,31 @@ function openChineseLesson(type){
   : '<p>Los <b>汉字 (hanzi)</b> son los caracteres escritos. En esta app cada entrada los mostrará junto al pinyin y la traducción para que aprendas escritura y pronunciación a la vez.</p><div class="chinese-grid"><div class="chinese-card"><div class="hanzi">你</div><div class="pinyin">nǐ</div><div class="muted">tú</div></div><div class="chinese-card"><div class="hanzi">好</div><div class="pinyin">hǎo</div><div class="muted">bueno / bien</div></div><div class="chinese-card"><div class="hanzi">我</div><div class="pinyin">wǒ</div><div class="muted">yo</div></div></div>';
  document.getElementById('main').innerHTML='<section><button class="btn smallbtn" onclick="homeChinese()">← Aprender chino</button><div class="card" style="margin-top:12px"><div class="muted small">Lección</div><h2 style="margin-top:6px">'+(pinyin?'拼音 · Pinyin y tonos':'汉字 · Cómo aprender los caracteres')+'</h2>'+body+'</div></section>';
 }
-function chineseLibrary(levelFilter){
+function chineseLibrary(levelFilter,partFilter){
  setNav("library");
  const q=(window.chineseQuery||"").toLowerCase();
  const selectedLevel=levelFilter||"";
-
- const arr=chineseData.filter(x=>(!selectedLevel||x.level===selectedLevel)&&(!q||[x.es,x.hanzi,x.pinyin,...x.tags].join(" ").toLowerCase().includes(q)));
+ const selectedPart=partFilter==null?null:Number(partFilter);
+ currentChineseLevel=selectedLevel||null;
+ currentChinesePart=selectedPart;
+ const arr=chineseData.filter(x=>(!selectedLevel||x.level===selectedLevel)&&(selectedPart===null||Number(x.part)===selectedPart)&&(!q||[x.es,x.hanzi,x.pinyin,x.level,x.part,...x.tags].join(" ").toLowerCase().includes(q)));
  document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📚 Vocabulario chino</h2><div class="muted">'+chineseData.length+' entradas · Hanzi + Pinyin + español</div></div><div class="actions"><button class="btn" onclick="addChinesePhrase()">➕ Añadir</button><button class="btn" onclick="chineseExportJSON()">⬇️ JSON</button><button class="btn" onclick="chineseImportFile()">⬆️ Importar</button><button class="btn" onclick="homeChinese()">← Aprender</button></div></div>' +
- '<div class="actions" style="margin-bottom:10px">'+chineseLevels.map(l=>'<button class="btn '+(selectedLevel===l?"primary":"")+'" onclick="chineseLibrary(\''+l+'\')">'+l+'</button>').join("")+'</div><div class="searchbar"><input type="search" value="'+escapeHtml(window.chineseQuery||'')+'" placeholder="Buscar español, hanzi o pinyin..." oninput="window.chineseQuery=this.value;chineseLibrary(\''+selectedLevel+'\')"></div>' +
+ '<div class="actions" style="margin-bottom:10px">'+chineseLevels.map(l=>'<button class="btn '+(selectedLevel===l&&!selectedPart?"primary":"")+'" onclick="chineseLibrary(\''+l+'\')">'+l+'</button>').join("")+'</div>' +
+ (selectedLevel?'<div class="actions" style="margin-bottom:10px">'+[1,2,3,4].map(p=>'<button class="btn '+(selectedPart===p?"primary":"")+'" onclick="chineseLibrary(\''+selectedLevel+'\','+p+')">Parte '+p+'</button>').join("")+'</div>':'')+
+ '<div class="searchbar"><input type="search" value="'+escapeHtml(window.chineseQuery||'')+'" placeholder="Buscar español, hanzi, pinyin, nivel o parte..." oninput="window.chineseQuery=this.value;chineseLibrary(\''+selectedLevel+'\','+(selectedPart===null?"null":selectedPart)+')"></div>' +
  '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join('')||'<div class="empty">No se encontraron entradas.</div>')+'</div></section>';
 }
 function chinesePhraseRow(x){
- return '<article class="chinese-phrase"><div class="chinese-phrase-main"><div><div class="hanzi">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div><div style="margin-top:4px">'+escapeHtml(x.es)+'</div><div class="tags">'+x.tags.map(t=>'<span class="tag">'+escapeHtml(t)+'</span>').join('')+'</div></div><div class="actions"><button class="btn smallbtn" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar</button><button class="btn smallbtn" onclick="editChinesePhrase('+JSON.stringify(x.id)+')">Editar</button><button class="btn smallbtn" onclick="deleteChinesePhrase('+JSON.stringify(x.id)+')">Eliminar</button></div></div><div class="rating-line"><div class="rating-item"><span class="muted small">🎧 Pronunciación</span>'+chineseStars(x.pronunciationStars,x.id,'pronunciation')+'</div><div class="rating-item"><span class="muted small">✍️ Traducción</span>'+chineseStars(x.translationStars,x.id,'translation')+'</div></div></article>';
+ return '<article class="chinese-phrase"><div class="chinese-phrase-main"><div><div class="muted small">'+escapeHtml(x.level)+' · Parte '+(x.part||1)+'</div><div class="hanzi">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div><div style="margin-top:4px">'+escapeHtml(x.es)+'</div><div class="tags">'+x.tags.map(t=>'<span class="tag">'+escapeHtml(t)).join('')+'</div></div><div class="actions"><button class="btn smallbtn" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar</button><button class="btn smallbtn" onclick="editChinesePhrase('+JSON.stringify(x.id)+')">Editar</button><button class="btn smallbtn" onclick="deleteChinesePhrase('+JSON.stringify(x.id)+')">Eliminar</button></div></div><div class="rating-line"><div class="rating-item"><span class="muted small">🎧 Pronunciación</span>'+chineseStars(x.pronunciationStars,x.id,'pronunciation')+'</div><div class="rating-item"><span class="muted small">✍️ Traducción</span>'+chineseStars(x.translationStars,x.id,'translation')+'</div></div></article>';
 }
 function addChinesePhrase(){
  const es=prompt("Español:");if(!es)return;
  const hanzi=prompt("Hanzi (汉字):");if(!hanzi)return;
  const pinyin=prompt("Pinyin:");if(!pinyin)return;
  const level=(prompt("Nivel (HSK1, HSK2, HSK3, HSK4, HSK5 o HSK6):",currentChineseLevel||"HSK1")||"HSK1").toUpperCase();
+ const part=Math.min(4,Math.max(1,Number(prompt("Parte (1, 2, 3 o 4):",String(currentChinesePart||1)))||1));
  const tags=(prompt("Etiquetas, separadas por comas:","")||"").split(",").map(x=>x.trim()).filter(Boolean);
- chineseData.push(migrateChinesePhrase({id:"zh-"+Date.now(),es,hanzi,pinyin,level:chineseLevels.includes(level)?level:"HSK1",tags}));
+ chineseData.push(migrateChinesePhrase({id:"zh-"+Date.now(),es,hanzi,pinyin,level:chineseLevels.includes(level)?level:"HSK1",part,tags}));
  save();chineseLibrary(level);
 }
 function editChinesePhrase(id){
@@ -860,8 +879,9 @@ function editChinesePhrase(id){
  const hanzi=prompt("Hanzi (汉字):",x.hanzi);if(hanzi===null)return;
  const pinyin=prompt("Pinyin:",x.pinyin);if(pinyin===null)return;
  const level=(prompt("Nivel:",x.level)||x.level).toUpperCase();
+ const part=Math.min(4,Math.max(1,Number(prompt("Parte (1, 2, 3 o 4):",String(x.part||1)))||1));
  const tags=(prompt("Etiquetas, separadas por comas:",x.tags.join(", "))||"").split(",").map(x=>x.trim()).filter(Boolean);
- Object.assign(x,{es,hanzi,pinyin,level:chineseLevels.includes(level)?level:x.level,tags});
+ Object.assign(x,{es,hanzi,pinyin,level:chineseLevels.includes(level)?level:x.level,part,tags});
  save();chineseLibrary(x.level);
 }
 function deleteChinesePhrase(id){
@@ -891,7 +911,7 @@ function parseChineseCSV(text){
  if(rows.length<2)return [];
  const h=rows[0].map(x=>normalize(x)),idx=(...names)=>h.findIndex(x=>names.includes(x));
  const ie=idx("espanol","español","es","spanish"),ih=idx("hanzi","chino","chinese","caracteres"),ip=idx("pinyin"),il=idx("nivel","level"),it=idx("etiquetas","tags","colecciones","collections");
- return rows.slice(1).map(r=>migrateChinesePhrase({id:"zh-"+Date.now()+Math.random(),es:r[ie]||"",hanzi:r[ih]||"",pinyin:r[ip]||"",level:(r[il]||"HSK1").toUpperCase(),tags:(r[it]||"").split(/[|,]/).map(x=>x.trim()).filter(Boolean)}));
+ return rows.slice(1).map(r=>migrateChinesePhrase({id:"zh-"+Date.now()+Math.random(),es:r[ie]||"",hanzi:r[ih]||"",pinyin:r[ip]||"",level:(r[il]||"HSK1").toUpperCase(),part:Math.min(4,Math.max(1,Number(r[idx("parte","part")])||1)),tags:(r[it]||"").split(/[|,]/).map(x=>x.trim()).filter(Boolean)}));
 }
 function chineseImportData(text,name){
  try{
