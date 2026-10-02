@@ -993,14 +993,21 @@ function chineseStars(n,id,type){
  for(let i=1;i<=5;i++)s+='<button class="star '+(i<=n?'on':'')+'" onclick="rateChinese('+JSON.stringify(id)+','+i+',\''+type+'\')">★</button>';
  return s+'</div>';
 }
+function registerChinesePhrasePractice(x){
+ if(!x)return;
+ x.practiceCount=(Number(x.practiceCount)||0)+1;
+ x.lastPracticed=new Date().toISOString();
+ registerTodayPractice(x.id);
+ save();
+}
 function rateChinese(id,n,type){
  const x=chineseData.find(a=>String(a.id)===String(id));if(!x)return;
  if(type==='pronunciation')x.pronunciationStars=n;
  if(type==='translation')x.translationStars=n;
- x.practiceCount=(Number(x.practiceCount)||0)+1;
- x.lastPracticed=new Date().toISOString();
- save();
- chineseLibrary(currentChineseLevel||"");
+ registerChinesePhrasePractice(x);
+ if(sessionIds.length)renderChineseSession();
+ else if(currentChineseLevel&&currentChinesePart!==null)openChinesePart(currentChineseLevel,currentChinesePart);
+ else chineseLibrary(currentChineseLevel||"");
 }
 function speakChinese(text){
  if(!('speechSynthesis' in window)){alert('Este navegador no admite reproducción de voz.');return}
