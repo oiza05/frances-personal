@@ -886,11 +886,17 @@ function checkChineseAllAnswer(id){
   fb.innerHTML='<div class="feedback wrong-feedback"><b>❌ Hay una diferencia.</b><div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div><div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br><b class="expected-answer">'+escapeHtml(x.hanzi)+'</b><div class="pinyin">'+escapeHtml(x.pinyin)+'</div></div><div style="margin-top:10px"><span class="muted">Errores detectados: '+errors+' · Dominio actual: '+starsByMistakes+' ⭐</span></div></div>';
   input.focus();
  }
- const rating=document.querySelector('[id="study-zh-'+CSS.escape(String(id))+'"] .all-translation-rating .stars');
+ const card=document.getElementById("study-zh-"+id);
+ const rating=card?.querySelector(".all-translation-rating .stars");
  if(rating)rating.outerHTML=chineseStars(x.translationStars,x.id,"translation");
- registerChinesePhrasePractice(x);
- try{save();}catch(e){console.error("No se pudo guardar el progreso chino:",e);}
+ try{
+  registerChinesePhrasePractice(x);
+ }catch(e){
+  console.error("No se pudo registrar la práctica china:",e);
+ }
 }
+window.checkChineseAllAnswer=checkChineseAllAnswer;
+
 function finishChineseSession(){
  const goalCompleted=checkDailyGoal();
  if(currentChineseLevel===null||goalCompleted){goHome();return}
