@@ -496,7 +496,9 @@ async function syncPullRemote(){
 }
 function buildSyncPayload(){
  return {
+  languageVersion:1,
   phrases:data.map(migratePhrase),
+  chinesePhrases:chineseData.map(migrateChinesePhrase),
   localUpdatedAt,
   audioSeconds:audioStats.seconds,
   todayStats:{...todayStats,phraseIds:[...todayStats.phraseIds]},
@@ -614,10 +616,13 @@ async function syncNow(){
   if(Number.isFinite(Number(remote.data?.audioSeconds)))audioStats.seconds=Math.max(audioStats.seconds,Number(remote.data.audioSeconds)||0);
   saveAudioStats();
   const incoming=Array.isArray(remote.data?.phrases)?remote.data.phrases:null;
+  const incomingChinese=Array.isArray(remote.data?.chinesePhrases)?remote.data.chinesePhrases:null;
   const remoteLibraryIsNewer=remote.updatedAt>localUpdatedAt && !!incoming;
   if(remoteLibraryIsNewer){
    data=incoming.map(migratePhrase);
+   if(incomingChinese)chineseData=incomingChinese.map(migrateChinesePhrase);
    await dbSet(DB_DATA_KEY,data);
+   await dbSet("chineseLibrary",chineseData);
    localUpdatedAt=remote.updatedAt;
    await dbSet(DB_META_KEY,{updatedAt:localUpdatedAt});
   }
