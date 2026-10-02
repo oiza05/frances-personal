@@ -780,6 +780,84 @@ function home(){
    </div>
   </section>`;
 }
+function updateLanguageUI(){
+ const zh=currentLanguage==='zh';
+ const title=document.getElementById('appTitle');
+ const subtitle=document.getElementById('appSubtitle');
+ const select=document.getElementById('languageSelect');
+ const navHome=document.getElementById('navHome');
+ const navStatistics=document.getElementById('navStatistics');
+ const navLibrary=document.getElementById('navLibrary');
+ if(title)title.textContent=zh?'🇨🇳 Chino personal':'🇫🇷 Francés personal';
+ if(subtitle)subtitle.textContent=zh?'Hanzi · Pinyin · español · práctica':'Tu biblioteca y práctica de francés';
+ if(select)select.value=currentLanguage;
+ if(navHome)navHome.textContent=zh?'🏠 Aprender':'🏠 Niveles';
+ if(navStatistics)navStatistics.textContent=zh?'📊 Progreso':'📊 Estadísticas';
+ if(navLibrary)navLibrary.textContent=zh?'📚 Palabras y frases':'📚 Biblioteca';
+}
+function switchLanguage(language){
+ currentLanguage=language==='zh'?'zh':'fr';
+ localStorage.setItem(LANGUAGE_KEY,currentLanguage);
+ currentLevel=null;currentPart=null;sessionType=null;sessionIds=[];
+ updateLanguageUI();goHome();
+}
+function homeChinese(){
+ setNav('home');
+ const total=chineseData.length;
+ const mastered=chineseData.filter(x=>(Number(x.translationStars)||1)>=4&&(Number(x.pronunciationStars)||1)>=4).length;
+ document.getElementById('main').innerHTML=
+  '<section><div class="chinese-hero"><div class="muted small">🇨🇳 Mandarín</div><h2>Aprender chino: 汉字 + Pinyin</h2><div class="muted">Aprenderás el carácter chino, cómo se escribe con letras latinas y qué significa en español.</div>' +
+  '<div class="tone-grid"><div class="tone-card"><b>mā</b><span>1.º · alto y plano</span></div><div class="tone-card"><b>má</b><span>2.º · ascendente</span></div><div class="tone-card"><b>mǎ</b><span>3.º · baja y sube</span></div><div class="tone-card"><b>mà</b><span>4.º · descendente</span></div><div class="tone-card"><b>ma</b><span>neutro · ligero</span></div></div></div>' +
+  '<div class="section-head"><div><h2>Ruta de aprendizaje</h2><div class="muted">Primero sonidos y tonos; después palabras, frases y hanzi.</div></div><button class="btn" onclick="chineseLibrary()">📚 Ver vocabulario</button></div>' +
+  '<div class="chinese-grid"><button class="chinese-card" onclick="openChineseLesson(\'pinyin\')"><div class="hanzi">拼音</div><h3>Pinyin y tonos</h3><div class="muted small">Aprende a leer las sílabas con tu alfabeto latino.</div></button>' +
+  '<button class="chinese-card" onclick="openChineseLesson(\'hanzi\')"><div class="hanzi">汉字</div><h3>Hanzi</h3><div class="muted small">Relaciona cada carácter con su pinyin y significado.</div></button>' +
+  '<button class="chinese-card" onclick="chineseLibrary()"><div class="hanzi">你好</div><h3>Frases básicas</h3><div class="muted small">Saludar, presentarte, pedir cosas y desenvolverte.</div></button></div>' +
+  '<div class="stats-grid"><div class="stat"><div class="muted small">Palabras y frases</div><b>'+total+'</b></div><div class="stat"><div class="muted small">Dominadas</div><b>'+mastered+'</b></div></div></section>';
+}
+function openChineseLesson(type){
+ setNav('home');
+ const pinyin=type==='pinyin';
+ const body=pinyin
+  ? '<p>El <b>pinyin</b> escribe la pronunciación del mandarín con letras latinas. No sustituye a los caracteres: aprenderemos las dos formas juntas.</p><div class="tone-grid"><div class="tone-card"><b>ā</b><span>1.º alto y plano</span></div><div class="tone-card"><b>á</b><span>2.º sube</span></div><div class="tone-card"><b>ǎ</b><span>3.º baja y sube</span></div><div class="tone-card"><b>à</b><span>4.º cae</span></div><div class="tone-card"><b>a</b><span>neutro</span></div></div><div class="card" style="margin-top:12px"><b>Ejemplo</b><div class="hanzi">你好</div><div class="pinyin">nǐ hǎo</div><div class="muted">hola</div><button class="btn" style="margin-top:10px" onclick="speakChinese(\'你好\')">🔊 Escuchar</button></div>'
+  : '<p>Los <b>汉字 (hanzi)</b> son los caracteres escritos. En esta app cada entrada los mostrará junto al pinyin y la traducción para que aprendas escritura y pronunciación a la vez.</p><div class="chinese-grid"><div class="chinese-card"><div class="hanzi">你</div><div class="pinyin">nǐ</div><div class="muted">tú</div></div><div class="chinese-card"><div class="hanzi">好</div><div class="pinyin">hǎo</div><div class="muted">bueno / bien</div></div><div class="chinese-card"><div class="hanzi">我</div><div class="pinyin">wǒ</div><div class="muted">yo</div></div></div>';
+ document.getElementById('main').innerHTML='<section><button class="btn smallbtn" onclick="homeChinese()">← Aprender chino</button><div class="card" style="margin-top:12px"><div class="muted small">Lección</div><h2 style="margin-top:6px">'+(pinyin?'拼音 · Pinyin y tonos':'汉字 · Cómo aprender los caracteres')+'</h2>'+body+'</div></section>';
+}
+function chineseLibrary(){
+ setNav('library');
+ const q=(window.chineseQuery||'').toLowerCase();
+ const arr=chineseData.filter(x=>!q||[x.es,x.hanzi,x.pinyin,...x.tags].join(' ').toLowerCase().includes(q));
+ document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📚 Vocabulario chino</h2><div class="muted">'+chineseData.length+' entradas · Hanzi + Pinyin + español</div></div><button class="btn" onclick="homeChinese()">← Aprender</button></div>' +
+ '<div class="searchbar"><input type="search" value="'+escapeHtml(window.chineseQuery||'')+'" placeholder="Buscar español, hanzi o pinyin..." oninput="window.chineseQuery=this.value;chineseLibrary()"></div>' +
+ '<div class="chinese-phrase-list">'+(arr.map(chinesePhraseRow).join('')||'<div class="empty">No se encontraron entradas.</div>')+'</div></section>';
+}
+function chinesePhraseRow(x){
+ return '<article class="chinese-phrase"><div class="chinese-phrase-main"><div><div class="hanzi">'+escapeHtml(x.hanzi)+'</div><div class="pinyin">'+escapeHtml(x.pinyin)+'</div><div style="margin-top:4px">'+escapeHtml(x.es)+'</div><div class="tags">'+x.tags.map(t=>'<span class="tag">'+escapeHtml(t)+'</span>').join('')+'</div></div><div class="actions"><button class="btn smallbtn" onclick="speakChinese('+JSON.stringify(x.hanzi)+')">🔊 Escuchar</button></div></div><div class="rating-line"><div class="rating-item"><span class="muted small">🎧 Pronunciación</span>'+chineseStars(x.pronunciationStars,x.id,'pronunciation')+'</div><div class="rating-item"><span class="muted small">✍️ Traducción</span>'+chineseStars(x.translationStars,x.id,'translation')+'</div></div></article>';
+}
+function chineseStars(n,id,type){
+ let s='<div class="stars">';
+ for(let i=1;i<=5;i++)s+='<button class="star '+(i<=n?'on':'')+'" onclick="rateChinese('+JSON.stringify(id)+','+i+',\''+type+'\')">★</button>';
+ return s+'</div>';
+}
+function rateChinese(id,n,type){
+ const x=chineseData.find(a=>String(a.id)===String(id));if(!x)return;
+ if(type==='pronunciation')x.pronunciationStars=n;
+ if(type==='translation')x.translationStars=n;
+ x.practiceCount=(Number(x.practiceCount)||0)+1;x.lastPracticed=new Date().toISOString();save();chineseLibrary();
+}
+function speakChinese(text){
+ if(!('speechSynthesis' in window)){alert('Este navegador no admite reproducción de voz.');return}
+ const phrase=cleanSpeechText(text);if(!phrase)return;
+ const synth=window.speechSynthesis;try{synth.cancel();synth.resume()}catch(e){}
+ const u=new SpeechSynthesisUtterance(phrase);u.lang='zh-CN';u.rate=0.82;u.pitch=1;
+ const voice=(synth.getVoices()||[]).find(v=>/^zh(-|$)/i.test(String(v.lang)));if(voice)u.voice=voice;
+ try{synth.speak(u);setTimeout(()=>{try{synth.resume()}catch(e){}},100)}catch(e){}
+}
+function statisticsChinese(){
+ setNav('statistics');
+ const total=chineseData.length,practiced=chineseData.filter(x=>(Number(x.practiceCount)||0)>0).length;
+ const p=masteryPercent(chineseData,'pronunciationStars')??0,t=masteryPercent(chineseData,'translationStars')??0,overall=Math.round((p+t)/2);
+ document.getElementById('main').innerHTML='<section><div class="section-head"><div><h2>📊 Progreso de chino</h2><div class="muted">Tu progreso con hanzi, pinyin y pronunciación.</div></div></div><div class="stats-grid"><div class="stat"><div class="muted small">Entradas</div><b>'+total+'</b></div><div class="stat"><div class="muted small">Practicadas</div><b>'+practiced+'</b></div><div class="stat"><div class="muted small">Pronunciación</div><b>'+p+'%</b></div><div class="stat"><div class="muted small">Traducción</div><b>'+t+'%</b></div></div><div class="card"><div class="section-head"><b>🎯 Dominio general</b><b style="font-size:24px">'+overall+'%</b></div><div class="level-progress"><span style="width:'+overall+'%"></span></div></div></section>';
+}
 function openLevel(level){
  currentLevel=level; currentPart=null; setNav("home");
  const arr=data.filter(x=>x.level===level);
