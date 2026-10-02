@@ -677,7 +677,7 @@ window.rate=(id,n,type)=>{
  renderCurrent();
 };
 function goHome(){
- currentLevel=null; sessionType=null; sessionIds=[]; sessionPos=0; setNav("home"); home();
+ currentLevel=null;currentPart=null;sessionType=null;sessionIds=[];sessionPos=0;setNav("home");home();
 }
 function getLearnedWords(){
  const words=new Set();
@@ -1442,6 +1442,7 @@ function renderCurrent(){
  // El reproductor de "Escuchar toda la parte" mantiene su propia UI y
  // su secuencia de audio. No reconstruir #main mientras está reproduciendo.
  if(partAudioPlaying)return;
+ if(currentLanguage==="zh"){homeChinese();return;}
  if(sessionType&&sessionIds.length){renderSession();return}
  if(currentLevel){openLevel(currentLevel);return}
  if(document.getElementById("navLibrary").classList.contains("active")){renderLibrary();return}
@@ -1451,5 +1452,6 @@ function renderCurrent(){
  await loadData();
  await loadAudioStats();
  await syncInit();
+ updateLanguageUI();
  home();
 })();
