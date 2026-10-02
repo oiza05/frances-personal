@@ -10,7 +10,9 @@ const SYNC_CONFIG_KEY="frances-personal-sync-config";
 const SYNC_STATE_KEY="frances-personal-sync-state";
 const SYNC_DEVICE_KEY="frances-personal-sync-device-id";
 const TODAY_EVENTS_KEY="frances-today-events";
-const APP_VERSION="v1.7";
+const APP_VERSION="v1.8";
+const LANGUAGE_KEY="frances-personal-language";
+let currentLanguage=localStorage.getItem(LANGUAGE_KEY)==="zh"?"zh":"fr";
 let syncConfig=null;
 let syncClient=null;
 let syncUser=null;
@@ -28,7 +30,24 @@ const sample=[
  {id:7,es:"A pesar de las dificultades, el proyecto siguió adelante.",fr:"Malgré les difficultés, le projet a continué.",level:"C2",tags:["Trabajo","Expresiones"],pronunciationStars:2,translationStars:1}
 ];
 const levels=["A1","A2","B1","B2","C1","C2"];
+const chineseSample=[
+ {id:"zh-1",es:"Hola",hanzi:"你好",pinyin:"nǐ hǎo",level:"Inicial",tags:["Saludos"],pronunciationStars:1,translationStars:1},
+ {id:"zh-2",es:"Gracias",hanzi:"谢谢",pinyin:"xièxie",level:"Inicial",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
+ {id:"zh-3",es:"De nada",hanzi:"不客气",pinyin:"bú kèqi",level:"Inicial",tags:["Cortesía"],pronunciationStars:1,translationStars:1},
+ {id:"zh-4",es:"Adiós",hanzi:"再见",pinyin:"zàijiàn",level:"Inicial",tags:["Saludos"],pronunciationStars:1,translationStars:1},
+ {id:"zh-5",es:"¿Cómo estás?",hanzi:"你好吗？",pinyin:"nǐ hǎo ma?",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-6",es:"Estoy bien",hanzi:"我很好",pinyin:"wǒ hěn hǎo",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-7",es:"Me llamo…",hanzi:"我叫……",pinyin:"wǒ jiào…",level:"Inicial",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
+ {id:"zh-8",es:"¿Cómo te llamas?",hanzi:"你叫什么名字？",pinyin:"nǐ jiào shénme míngzi?",level:"Inicial",tags:["Presentarse"],pronunciationStars:1,translationStars:1},
+ {id:"zh-9",es:"No entiendo",hanzi:"我不懂",pinyin:"wǒ bù dǒng",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-10",es:"Por favor, repítelo",hanzi:"请再说一遍",pinyin:"qǐng zài shuō yí biàn",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-11",es:"¿Cuánto cuesta?",hanzi:"多少钱？",pinyin:"duōshao qián?",level:"Inicial",tags:["Compras"],pronunciationStars:1,translationStars:1},
+ {id:"zh-12",es:"¿Dónde está el baño?",hanzi:"洗手间在哪里？",pinyin:"xǐshǒujiān zài nǎlǐ?",level:"Inicial",tags:["Viajes"],pronunciationStars:1,translationStars:1},
+ {id:"zh-13",es:"No hablo chino",hanzi:"我不会说中文",pinyin:"wǒ bù huì shuō Zhōngwén",level:"Inicial",tags:["Conversación"],pronunciationStars:1,translationStars:1},
+ {id:"zh-14",es:"Quiero agua",hanzi:"我要水",pinyin:"wǒ yào shuǐ",level:"Inicial",tags:["Supervivencia"],pronunciationStars:1,translationStars:1}
+];
 let data=sample.map(migratePhrase);
+let chineseData=chineseSample.map(migrateChinesePhrase);
 let streakData={
  current:0,
  best:0,
