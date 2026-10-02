@@ -873,9 +873,14 @@ function checkChineseAllAnswer(id){
   input.focus();
   return;
  }
- const expected=cleanSpeechText(x.hanzi);
- const exact=raw===expected;
- const errors=exact?0:Math.max(1,translationErrorCount(expected,raw));
+ const expectedHanzi=cleanSpeechText(x.hanzi);
+ const expectedPinyin=cleanSpeechText(x.pinyin);
+ const normalizePinyin=value=>String(value??"").toLocaleLowerCase().normalize("NFC").replace(/[āáǎà]/g,"a").replace(/[ēéěè]/g,"e").replace(/[īíǐì]/g,"i").replace(/[ōóǒò]/g,"o").replace(/[ūúǔù]/g,"u").replace(/[ǖǘǚǜ]/g,"ü").replace(/[1-5]/g,"").replace(/\s+/g," ").trim();
+ const exactHanzi=raw===expectedHanzi;
+ const exactPinyin=normalizePinyin(raw)===normalizePinyin(expectedPinyin);
+ const exact=exactHanzi||exactPinyin;
+ const expectedForErrors=exactPinyin&&!exactHanzi?expectedPinyin:expectedHanzi;
+ const errors=exact?0:Math.max(1,translationErrorCount(expectedForErrors,raw));
  const starsByMistakes=Math.max(1,5-errors);
  x.translationStars=starsByMistakes;
 
