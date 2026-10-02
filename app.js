@@ -862,12 +862,33 @@ function chineseSessionPhraseCard(x,num){
 }
 function toggleChineseSpanishById(id){document.getElementById("zh-spanish-"+id)?.classList.toggle("hidden");}
 function checkChineseAllAnswer(id){
- const x=chineseData.find(a=>String(a.id)===String(id)),input=document.getElementById("zh-answer-"+id),fb=document.getElementById("zh-feedback-"+id);if(!x||!input||!fb)return;
- const raw=cleanSpeechText(input.value);if(!raw){fb.innerHTML='<div class="feedback wrong-feedback"><b>⚠️ Falta tu respuesta.</b><br><span class="muted">Escribe la frase en chino y vuelve a pulsar Comprobar.</span></div>';input.focus();return}
- const exact=raw===cleanSpeechText(x.hanzi);const errors=exact?0:Math.max(1,translationErrorCount(x.hanzi,raw));const starsByMistakes=Math.max(1,5-errors);x.translationStars=starsByMistakes;save();
- const rating=document.querySelector("#study-zh-"+CSS.escape(String(id))+" .all-translation-rating .stars");if(rating)rating.outerHTML=chineseStars(x.translationStars,x.id,"translation");
+ const x=chineseData.find(a=>String(a.id)===String(id));
+ const input=document.getElementById("zh-answer-"+id);
+ const fb=document.getElementById("zh-feedback-"+id);
+ if(!x||!input||!fb)return;
+ const raw=cleanSpeechText(input.value);
+ if(!raw){
+  fb.innerHTML='<div class="feedback wrong-feedback"><b>⚠️ Falta tu respuesta.</b><br><span class="muted">Escribe la frase en chino y vuelve a pulsar Comprobar.</span></div>';
+  input.focus();
+  return;
+ }
+ const expected=cleanSpeechText(x.hanzi);
+ const exact=raw===expected;
+ const errors=exact?0:Math.max(1,translationErrorCount(expected,raw));
+ const starsByMistakes=Math.max(1,5-errors);
+ x.translationStars=starsByMistakes;
+
+ if(exact){
+  fb.innerHTML='<div class="feedback correct-feedback"><b>✅ ¡Correcto!</b><br><span class="muted">Tu respuesta coincide con la frase esperada. Dominio: '+starsByMistakes+' ⭐</span></div>';
+  input.disabled=true;
+ }else{
+  fb.innerHTML='<div class="feedback wrong-feedback"><b>❌ Hay una diferencia.</b><div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div><div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br><b class="expected-answer">'+escapeHtml(x.hanzi)+'</b><div class="pinyin">'+escapeHtml(x.pinyin)+'</div></div><div style="margin-top:10px"><span class="muted">Errores detectados: '+errors+' · Dominio actual: '+starsByMistakes+' ⭐</span></div></div>';
+  input.focus();
+ }
+ const rating=document.querySelector('[id="study-zh-'+CSS.escape(String(id))+'"] .all-translation-rating .stars');
+ if(rating)rating.outerHTML=chineseStars(x.translationStars,x.id,"translation");
  registerChinesePhrasePractice(x);
- if(exact){fb.innerHTML='<div class="feedback correct-feedback"><b>✅ ¡Correcto!</b><br><span class="muted">Tu respuesta coincide con la frase esperada. Dominio: '+starsByMistakes+' ⭐</span></div>';input.disabled=true}else{fb.innerHTML='<div class="feedback wrong-feedback"><b>❌ Hay una diferencia.</b><div style="margin-top:8px"><span class="muted">Tú escribiste:</span><br><b>'+escapeHtml(raw)+'</b></div><div style="margin-top:10px"><span class="muted">La frase correcta es:</span><br><b class="expected-answer">'+escapeHtml(x.hanzi)+'</b><div class="pinyin">'+escapeHtml(x.pinyin)+'</div></div><div style="margin-top:10px"><span class="muted">Errores detectados: '+errors+' · Dominio actual: '+starsByMistakes+' ⭐</span></div></div>';input.focus()}
+ try{save();}catch(e){console.error("No se pudo guardar el progreso chino:",e);}
 }
 function finishChineseSession(){
  const goalCompleted=checkDailyGoal();
