@@ -418,3 +418,25 @@ input[type=text],input[type=search],textarea,select{width:100%;border:1px solid 
 .mastery-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;margin-bottom:9px}
 .mastery-head b{font-size:22px}
 @media(max-width:600px){.sub-library-grid{grid-template-columns:1fr 1fr;gap:10px}.sub-library-card{padding:13px;min-height:215px}.mastery-overview{grid-template-columns:1fr}.mastery-head b{font-size:20px}}
+
+
+/* v1.8 — selector de idioma y módulo chino */
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.language-picker{display:flex;align-items:center;gap:7px}
+.language-picker select{width:auto;min-width:145px;padding:9px 34px 9px 10px;border-radius:12px}
+.chinese-hero{background:#fff;border:2px solid #cbd5e1;border-radius:20px;padding:20px;margin-bottom:16px}
+.chinese-hero h2{font-size:28px;margin-bottom:6px}
+.chinese-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+.chinese-card{background:#fff;border:2px solid #cbd5e1;border-radius:18px;padding:18px;text-align:left}
+.chinese-card h3{margin:0 0 6px}
+.hanzi{font-size:36px;font-weight:800;line-height:1.2}
+.pinyin{font-size:20px;font-weight:700;margin-top:5px}
+.chinese-phrase-list{display:grid;gap:10px;margin-top:16px}
+.chinese-phrase{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px}
+.chinese-phrase-main{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.chinese-phrase .hanzi{font-size:30px}
+.tone-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
+.tone-card{background:#f8fafc;border:1px solid #d5dbe5;border-radius:14px;padding:12px;text-align:center}
+.tone-card b{display:block;font-size:24px}
+.tone-card span{display:block;font-size:12px;margin-top:3px}
+@media(max-width:700px){.topbar-actions{gap:6px}.language-picker span{display:none}.language-picker select{min-width:120px;padding-left:8px}.chinese-grid{grid-template-columns:1fr}.tone-grid{grid-template-columns:repeat(5,minmax(58px,1fr));overflow:auto}.tone-card{padding:9px}}
