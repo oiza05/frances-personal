@@ -690,6 +690,9 @@ function getLearnedWords(){
  });
  return words;
 }
+function getTotalPractices(){
+ return data.reduce((sum,x)=>sum+(Number(x.practiceCount)||0),0);
+}
 function statistics(){
  if(currentLanguage==="zh"){statisticsChinese();return;}
  setNav("statistics");
@@ -707,7 +710,7 @@ function statistics(){
     <div class="card"><div class="muted small">Frases</div><div style="font-size:28px;font-weight:800">${total}</div><div class="muted small">en tu biblioteca</div></div>
     <div class="card"><div class="muted small">Dominadas</div><div style="font-size:28px;font-weight:800">${mastered}</div><div class="muted small">4⭐ o más en ambas áreas</div></div>
     <div class="card"><div class="muted small">Practicadas</div><div style="font-size:28px;font-weight:800">${practiced}</div><div class="muted small">al menos una vez</div></div>
-    <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${learnedWords}</div><div class="muted small">palabras únicas de frases dominadas</div></div>\n    <div class="card"><div class="muted small">🎧 Audio escuchado</div><div style="font-size:28px;font-weight:800">${formatAudioMinutes()}</div><div class="muted small">tiempo total de reproducción</div></div>
+    <div class="card"><div class="muted small">Palabras aprendidas</div><div style="font-size:28px;font-weight:800">${learnedWords}</div><div class="muted small">palabras únicas de frases dominadas</div></div>\n    <div class="card"><div class="muted small">🎧 Audio escuchado</div><div style="font-size:28px;font-weight:800">${formatAudioMinutes()}</div><div class="muted small">tiempo total de reproducción</div></div>\n    <div class="card"><div class="muted small">🔁 Repes totales</div><div style="font-size:28px;font-weight:800">${getTotalPractices()}</div><div class="muted small">prácticas acumuladas</div></div>
    </div>
    <div class="card" style="margin-top:16px">
     <div class="section-head" style="margin-bottom:12px"><div><b>🎯 Dominio general</b><div class="muted small">Promedio de traducción y pronunciación.</div></div><b style="font-size:24px">${overall}%</b></div>
@@ -1044,7 +1047,7 @@ function playNextChinesePartAudio(){
  u.pitch=1;
  const voice=getChineseVoice();
  if(voice)u.voice=voice;
- u.onstart=()=>{speechStartedAt=performance.now();};
+ u.onstart=()=>{speechStartedAt=performance.now();const x=partAudioItems[partAudioIndex];if(x)registerPhrasePractice(x);};
  const advance=()=>{
   if(speechStartedAt){
    addAudioSeconds((performance.now()-speechStartedAt)/1000);
@@ -1720,7 +1723,7 @@ function stopPartAudio(){
  }
  setSpeechStatus('🔊 Audio listo');
 }
-function speak(text){
+function speak(text,practiceId=null){
  if(!('speechSynthesis' in window)){
   setSpeechStatus('⚠️ Este navegador no admite voz.');
   alert('Este navegador no admite reproducción de voz.');
@@ -1743,7 +1746,7 @@ function speak(text){
   u.pitch=1;
   const voice=getFrenchVoice();
   if(voice)u.voice=voice;
-  u.onstart=()=>{speechStartedAt=performance.now();setSpeechStatus('🔊 Reproduciendo…');};
+  u.onstart=()=>{speechStartedAt=performance.now();if(practiceId!==null){const x=data.find(a=>String(a.id)===String(practiceId));if(x)registerPhrasePractice(x);}setSpeechStatus('🔊 Reproduciendo…');};
   u.onend=()=>{if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}speechBusy=false;setSpeechStatus('✅ Audio terminado');};
   u.onerror=(event)=>{
    if(speechStartedAt){addAudioSeconds((performance.now()-speechStartedAt)/1000);speechStartedAt=0;}
@@ -1775,7 +1778,7 @@ document.addEventListener('click',event=>{
  if(!btn)return;
  const id=btn.getAttribute('data-speak-id');
  const phrase=data.find(x=>String(x.id)===String(id));
- if(phrase)speak(phrase.fr);
+ if(phrase)speak(phrase.fr,phrase.id);
 });
 function renderCurrent(){
  // El reproductor de "Escuchar toda la parte" mantiene su propia UI y
