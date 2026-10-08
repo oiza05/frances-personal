@@ -1671,7 +1671,7 @@ function playNextPartAudio(){
  }catch(e){}
  const u=new SpeechSynthesisUtterance(phrase);
  u.lang='fr-FR';
- u.onstart=()=>{speechStartedAt=performance.now();};
+ u.onstart=()=>{speechStartedAt=performance.now();const x=partAudioItems[partAudioIndex];if(x)registerPhrasePractice(x);};
  u.rate=0.88;
  u.pitch=1;
  const voice=getFrenchVoice();
